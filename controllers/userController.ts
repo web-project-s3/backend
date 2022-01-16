@@ -2,8 +2,9 @@ import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { Db } from "../models/sequelize";
 import { UserModel, User } from "../models/userModel";
-import { globalAdminAuth, refresh, access, generateAccessToken } from "../auth/userAuth";
+import { globalAdminAuth, refresh, access, generateAccessToken, generateRefreshToken } from "../auth/userAuth";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 // Declaration merging
 declare module "fastify" {
@@ -25,17 +26,17 @@ export default function (fastify: FastifyInstance,  options: any, done: Function
                 if ( findUser )
                     return reply.code(409).send("User already exists");
                 
+                const password = await bcrypt.hash(request.body.password, 10);
                 const userModel: User = {
-                    id: undefined,
                     firstname: request.body.firstname,
                     lastname: request.body.lastname,
                     email: request.body.email,
-                    password: await bcrypt.hash(request.body.password, 10),
-                    refreshToken: fastify.jwt.sign({ email: request.body.email, password: request.body.password })
+                    password,
+                    refreshToken: await generateRefreshToken({ email: request.body.email, password })
                 };
                 
                 await fastify.db.models.UserModel.create(userModel);
-                reply.code(201).send("User created");
+                reply.code(201).send(userModel.refreshToken);
             }
             catch(e)
             {
@@ -57,7 +58,7 @@ export default function (fastify: FastifyInstance,  options: any, done: Function
                 {
                     if ( await bcrypt.compare(request.body.password, findUser.password) )
                     {
-                        const accessToken = await generateAccessToken({email: findUser.email});
+                        const accessToken = await generateAccessToken({id: findUser.id});
 
                         return reply.code(200).send({
                             accessToken,
@@ -84,26 +85,25 @@ export default function (fastify: FastifyInstance,  options: any, done: Function
     fastify.post("/token", async (request, reply) => 
     {
         const authHeader = request.headers["authorization"];
-        const token = authHeader && authHeader.split(" ")[1];
+        const refreshToken = authHeader && authHeader.split(" ")[1];
 		
-        if(token == null)
+        if(refreshToken == null)
             return reply.code(400).send("Invalid refresh token");
 
-        const user: UserModel = fastify.db.models.UserModel.findOne({where: {token}});
+        const user: UserModel = await fastify.db.models.UserModel.findOne({where: {refreshToken}});
 
         if(!user)
         {
-            reply.code(403).send("Forbidden");
+            return reply.code(403).send("Forbidden");
         }
 		
-        fastify.jwt.verify(token, (err,payload) => 
+        jwt.verify(refreshToken, refresh, async (err) => 
         {
             if(err)
                 return reply.code(401).send("Unauthorized");
 
-            const accessToken = generateAccessToken({ email: user.email });
+            const accessToken = await generateAccessToken({ id: user.id });
             reply.code(200).send({ AccessToken: accessToken });
-            
         });
     });
 

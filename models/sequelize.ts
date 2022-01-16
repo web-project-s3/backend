@@ -14,8 +14,7 @@ export interface Db {
 }
 
 const ConnectDB: FastifyPluginAsync = async (
-    fastify: FastifyInstance,
-    options: FastifyPluginOptions
+    fastify: FastifyInstance
 ) => {
     try {
         const sequelize = new Sequelize(process.env["DB_NAME"]!, process.env["DB_USER"]!, process.env["DB_PASSWORD"]!, {
@@ -30,7 +29,7 @@ const ConnectDB: FastifyPluginAsync = async (
         });
 
         const models: Models = { UserModel };
-        models.UserModel.init(initObject, { sequelize: sequelize });
+        models.UserModel.init(initObject, { sequelize: sequelize, modelName: "Users" });
         models.UserModel.sync();
 
         fastify.decorate("db", { models });

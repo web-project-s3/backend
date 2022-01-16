@@ -1,5 +1,4 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import httpErrors from "http-errors";
 import jwt from "jsonwebtoken";
 
 export const refresh = process.env["REFRESH_TOKEN"]!;
@@ -10,15 +9,15 @@ if ( !refresh || !access )
     process.exit(1);
 }
 
-export function preHandler(req: FastifyRequest, res: FastifyReply, next: Function) {
+export function preHandler(req: FastifyRequest, res: FastifyReply, next: () => void) {
     next();
 }
 
-export async function globalAdminAuth(req: FastifyRequest, res: FastifyReply, next: Function) {
+export async function globalAdminAuth(req: FastifyRequest, res: FastifyReply, next: () => void) {
 
     try 
     {
-        console.log(await req.server.jwt.verify(access));
+        console.log(await req.jwtVerify());
         console.log(req.user);
     } 
     catch (err) 
@@ -29,6 +28,10 @@ export async function globalAdminAuth(req: FastifyRequest, res: FastifyReply, ne
     next();
 }
 
-export async function generateAccessToken(payload: any) {
+export async function generateAccessToken(payload: {id: number}) {
     return jwt.sign(payload, access, { expiresIn: "2m" });
+}
+
+export async function generateRefreshToken(payload: {email: string, password: string}) {
+    return jwt.sign(payload, refresh);
 }
