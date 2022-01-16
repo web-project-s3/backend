@@ -1,4 +1,5 @@
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Sequelize } from "sequelize";
+import { RestaurantModel } from "./restaurantModel";
 
 export class UserModel extends Model {
     declare id: number;
@@ -7,6 +8,18 @@ export class UserModel extends Model {
     declare email: string;
     declare password: string;
     declare refreshToken: string;
+    declare isAdmin: boolean;
+
+    static onInit(sequelize: Sequelize){
+        UserModel.init(initObject, { sequelize, modelName: "Users" });
+    }
+    static associate() {
+        UserModel.belongsTo(RestaurantModel, { as: "Owner" });
+        UserModel.belongsTo(RestaurantModel, { as: "Employees" });
+    }
+    static async findByEmail(email: string) {
+        return await UserModel.findOne({where: { email }});
+    }
 }
 
 export class User {
@@ -15,9 +28,20 @@ export class User {
     declare email: string;
     declare password: string;
     declare refreshToken: string | undefined;
+
 }
 
-export const initObject = {
+export class UserAccessToken {
+    declare id: number;
+    declare isAdmin: boolean;
+}
+
+export class UserRefreshToken {
+    declare email: string;
+    declare password: string;
+}
+
+const initObject = {
     id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
@@ -43,5 +67,10 @@ export const initObject = {
     refreshToken: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    isAdmin: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
     }
 };

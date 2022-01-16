@@ -1,6 +1,7 @@
 import { fastify } from "fastify";
 import db  from "./models/sequelize";
-import userRoute from "./controllers/userController";
+import usersRoute from "./controllers/userController";
+import restaurantsRoute from "./controllers/restaurantController"
 import jwt from "fastify-jwt";
 import { access } from "./auth/userAuth";
 
@@ -10,5 +11,6 @@ const server = fastify({
 
 server.register(jwt, { secret: access });
 server.register(db);
-server.register(userRoute, {prefix: "/users"});
+server.register(usersRoute, {prefix: "/users"});
+server.register(restaurantsRoute, {prefix: "/restaurants"});
 server.listen(8080);

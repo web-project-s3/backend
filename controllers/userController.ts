@@ -1,10 +1,10 @@
-import { FastifyInstance } from "fastify";
-import fp from "fastify-plugin";
+import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
-import { UserModel, User } from "../models/userModel";
-import { globalAdminAuth, refresh, access, generateAccessToken, generateRefreshToken } from "../auth/userAuth";
+import { UserModel, User, UserRefreshToken } from "../models/userModel";
+import { refresh, generateAccessToken, generateRefreshToken, isAdmin } from "../auth/userAuth";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { RestaurantModel } from "../models/restaurantModel";
 
 // Declaration merging
 declare module "fastify" {
@@ -13,13 +13,13 @@ declare module "fastify" {
 	}
 }
 
-export default function (fastify: FastifyInstance,  options: any, done: Function) {
-    fastify.post<{Body: User}>("/register", {
+export default function (server: FastifyInstance, options: FastifyRegisterOptions<unknown>, done: () => void) {
+    server.post<{Body: User}>("/register", {
         handler: async (request, reply) => 
         {
             try
             {
-                const findUser = await fastify.db.models.UserModel.findOne({where: {
+                const findUser = await server.db.models.UserModel.findOne({where: {
                     email: request.body.email
                 }});
 
@@ -35,22 +35,23 @@ export default function (fastify: FastifyInstance,  options: any, done: Function
                     refreshToken: await generateRefreshToken({ email: request.body.email, password })
                 };
                 
-                await fastify.db.models.UserModel.create(userModel);
-                reply.code(201).send(userModel.refreshToken);
+                await server.db.models.UserModel.create(userModel);
+                reply.code(201).send({refreshToken: userModel.refreshToken});
             }
             catch(e)
             {
+                console.log(e);
                 reply.code(500).send("Internal error while registering");
             }
         }
     });
 
-    fastify.post<{Body: {email: string, password: string}}>("/login", {
+    server.post<{Body: UserRefreshToken}>("/login", {
         handler: async (request, reply) => 
         {
             try
             {
-                const findUser = await fastify.db.models.UserModel.findOne({where: {
+                const findUser = await server.db.models.UserModel.findOne({where: {
                     email: request.body.email
                 }});
 
@@ -58,7 +59,7 @@ export default function (fastify: FastifyInstance,  options: any, done: Function
                 {
                     if ( await bcrypt.compare(request.body.password, findUser.password) )
                     {
-                        const accessToken = await generateAccessToken({id: findUser.id});
+                        const accessToken = await generateAccessToken({id: findUser.id, isAdmin: findUser.isAdmin});
 
                         return reply.code(200).send({
                             accessToken,
@@ -82,7 +83,7 @@ export default function (fastify: FastifyInstance,  options: any, done: Function
         }
     });
 
-    fastify.post("/token", async (request, reply) => 
+    server.post("/token", async (request, reply) => 
     {
         const authHeader = request.headers["authorization"];
         const refreshToken = authHeader && authHeader.split(" ")[1];
@@ -90,7 +91,7 @@ export default function (fastify: FastifyInstance,  options: any, done: Function
         if(refreshToken == null)
             return reply.code(400).send("Invalid refresh token");
 
-        const user: UserModel = await fastify.db.models.UserModel.findOne({where: {refreshToken}});
+        const user: UserModel = await server.db.models.UserModel.findOne({where: {refreshToken}});
 
         if(!user)
         {
@@ -102,9 +103,28 @@ export default function (fastify: FastifyInstance,  options: any, done: Function
             if(err)
                 return reply.code(401).send("Unauthorized");
 
-            const accessToken = await generateAccessToken({ id: user.id });
-            reply.code(200).send({ AccessToken: accessToken });
+            const accessToken = await generateAccessToken({ id: user.id, isAdmin: user.isAdmin });
+            reply.code(200).send({ accessToken });
         });
+    });
+
+    server.get("/", {
+        preHandler: isAdmin,
+        handler: async (request, reply) => {
+            const users = await UserModel.findAll({
+                attributes:["id", "firstname", "lastname", "email", "isAdmin"],
+                include: [{
+                    model: RestaurantModel,
+                    as: "Owner"
+                },
+                {
+                    model: RestaurantModel,
+                    as: "Employees"
+                }
+                ]
+            });
+            reply.code(200).send(users);
+        },
     });
 
     done();

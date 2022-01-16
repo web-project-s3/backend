@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import jwt from "jsonwebtoken";
+import { UserAccessToken, UserRefreshToken } from "../models/userModel";
 
 export const refresh = process.env["REFRESH_TOKEN"]!;
 export const access = process.env["ACCESS_TOKEN"]!;
@@ -9,29 +10,29 @@ if ( !refresh || !access )
     process.exit(1);
 }
 
-export function preHandler(req: FastifyRequest, res: FastifyReply, next: () => void) {
-    next();
+export async function isAdmin(request: FastifyRequest, reply: FastifyReply) {
+    await verifyUser(request, reply);
+    const user = request.user as UserAccessToken;
+
+    if ( !user.isAdmin )
+        reply.status(403).send("Forbidden");
 }
 
-export async function globalAdminAuth(req: FastifyRequest, res: FastifyReply, next: () => void) {
-
+export async function verifyUser(request: FastifyRequest, reply: FastifyReply) {
     try 
     {
-        console.log(await req.jwtVerify());
-        console.log(req.user);
-    } 
-    catch (err) 
-    {
-        res.send(err);
+        await request.jwtVerify();
     }
-    console.log(req.user);
-    next();
+    catch(e)
+    {
+        reply.send(e);
+    }
 }
 
-export async function generateAccessToken(payload: {id: number}) {
-    return jwt.sign(payload, access, { expiresIn: "2m" });
+export async function generateAccessToken(payload: UserAccessToken) {
+    return jwt.sign(payload, access, { expiresIn: "24h" });
 }
 
-export async function generateRefreshToken(payload: {email: string, password: string}) {
+export async function generateRefreshToken(payload: UserRefreshToken) {
     return jwt.sign(payload, refresh);
 }

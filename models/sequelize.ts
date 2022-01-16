@@ -1,12 +1,15 @@
 import { FastifyInstance } from "fastify";
 import { FastifyPluginAsync, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
-import { UserModel, initObject } from "./userModel";
-import { Sequelize, DataTypes } from "sequelize";
+import { Sequelize, DataTypes, Model } from "sequelize";
 import { Dialect } from "sequelize/types";
+
+import { UserModel } from "./userModel";
+import { RestaurantModel } from "./restaurantModel";
 
 export interface Models {
 	UserModel: any;
+  RestaurantModel: any;
 }
 
 export interface Db {
@@ -28,10 +31,13 @@ const ConnectDB: FastifyPluginAsync = async (
             console.error("Unable to connect to the database", e);
         });
 
-        const models: Models = { UserModel };
-        models.UserModel.init(initObject, { sequelize: sequelize, modelName: "Users" });
-        models.UserModel.sync();
-
+        const models: Models = { UserModel, RestaurantModel };
+        models.UserModel.onInit(sequelize);
+        models.RestaurantModel.onInit(sequelize);
+        await models.UserModel.associate();
+        await models.RestaurantModel.associate();
+        await sequelize.sync();
+      
         fastify.decorate("db", { models });
     } catch (error) {
         console.error(error);
