@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
-import { FastifyPluginAsync, FastifyPluginOptions } from "fastify";
+import { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { Sequelize, DataTypes, Model } from "sequelize";
+import { Sequelize } from "sequelize";
 import { Dialect } from "sequelize/types";
 
 import { UserModel } from "./userModel";
@@ -9,7 +9,7 @@ import { RestaurantModel } from "./restaurantModel";
 
 export interface Models {
 	UserModel: any;
-  RestaurantModel: any;
+    RestaurantModel: any;
 }
 
 export interface Db {

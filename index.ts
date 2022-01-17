@@ -1,7 +1,7 @@
 import { fastify } from "fastify";
 import db  from "./models/sequelize";
 import usersRoute from "./controllers/userController";
-import restaurantsRoute from "./controllers/restaurantController"
+import restaurantsRoute from "./controllers/restaurantController";
 import jwt from "fastify-jwt";
 import { access } from "./auth/userAuth";
 

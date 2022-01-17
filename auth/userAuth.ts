@@ -4,6 +4,7 @@ import { UserAccessToken, UserRefreshToken } from "../models/userModel";
 
 export const refresh = process.env["REFRESH_TOKEN"]!;
 export const access = process.env["ACCESS_TOKEN"]!;
+
 if ( !refresh || !access )
 {
     console.error("Can't load JWT Secrets");

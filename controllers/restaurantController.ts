@@ -1,12 +1,9 @@
 import { FastifyInstance, FastifyRegisterOptions } from "fastify";
-import fp from "fastify-plugin";
 import { Db } from "../models/sequelize";
-import { UserModel, User } from "../models/userModel";
-import { isAdmin, refresh, generateAccessToken, generateRefreshToken, verifyUser } from "../auth/userAuth";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { Restaurant, RestaurantModel } from "../models/restaurantModel";
-import { send } from "process";
+import { UserModel } from "../models/userModel";
+import { isAdmin } from "../auth/userAuth";
+import { RestaurantModel } from "../models/restaurantModel";
+import { UniqueConstraintError } from "sequelize";
 
 // Declaration merging
 declare module "fastify" {
@@ -17,17 +14,23 @@ declare module "fastify" {
 
 export default function (server: FastifyInstance,  options: FastifyRegisterOptions<unknown>, done: () => void) {
 
-    server.post<{Body: {restaurant: Restaurant, ownerEmail: string}}>("/", {
+    server.post<{Body: {restaurantName: string, ownerEmail: string}}>("/", {
         preHandler: isAdmin,
         handler: async (request, reply) => {
             try {
-                if ( RestaurantModel.isValid(request.body.restaurant) )
+                if ( request.body.restaurantName )
                 {
                     const user = await server.db.models.UserModel.findByEmail(request.body.ownerEmail);
                     if ( user )
                     {
-                        const restaurant = await server.db.models.RestaurantModel.create(request.body.restaurant);
-                        restaurant.setOwner(user.id);
+                        if ( await user.getOwner() )
+                            return reply.code(409).send("User is already an owner");
+
+                        const restaurant = await server.db.models.RestaurantModel.create( 
+                            {   name: request.body.restaurantName, 
+                                code :  server.jwt.sign({restaurantName: request.body.restaurantName}).substr(-5,5) });
+
+                        await restaurant.setOwner(user.id);
                         return reply.code(201).send(restaurant);
                     }
                     else return reply.code(400).send("Owner couldn't be found");
@@ -36,7 +39,12 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 
             }
             catch(e) {
-                return e;
+                if ( e instanceof UniqueConstraintError )
+                {
+                    console.log(e);
+                    return reply.code(409).send("Restaurant already exists");
+                }
+                else throw e;
             }
         }
     });
@@ -48,19 +56,32 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 attributes: ["id", "code", "name"],
                 include: [{
                     model: UserModel,
-                    attributes: ["id", "firstname", "lastname", "email"],
+                    attributes: ["id"],
                     as: "Owner"
                 },
                 {
                     model: UserModel,
-                    as: "Employees"
+                    attributes: ["id"],
+                    as: "Employee"
                 }
                 ]
             });
             reply.code(200).send(restaurants);
         },
     });
-    
+
+    server.delete<{Params: {id: number}}>("/:id", {
+        preHandler: isAdmin,
+        handler: async (request, reply) => {
+            const restaurant = await server.db.models.RestaurantModel.findByPk(request.params.id);
+            if ( !restaurant )
+                return reply.code(404).send("Restaurant not found");
+            restaurant.setOwner(null);
+            await restaurant.destroy();
+            return reply.code(200).send();
+        }
+    });
+
     done();
 }
 

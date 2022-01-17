@@ -11,7 +11,7 @@ export class RestaurantModel extends Model {
     }
     static associate(){
         RestaurantModel.hasOne(UserModel, { as: "Owner" });
-        RestaurantModel.hasMany(UserModel, { as: "Employees" });    
+        RestaurantModel.hasMany(UserModel, { as: "Employee" });    
     }
     static isValid(restaurant: Restaurant | RestaurantModel) {
         return restaurant.code && restaurant.name;
@@ -35,6 +35,7 @@ export const initObject = {
     },
     code: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        unique: true
     }
 };

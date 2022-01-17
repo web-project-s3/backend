@@ -1,4 +1,4 @@
-import { DataTypes, Model, Sequelize } from "sequelize";
+import { DataTypes, FindAttributeOptions, Includeable, Model, Sequelize } from "sequelize";
 import { RestaurantModel } from "./restaurantModel";
 
 export class UserModel extends Model {
@@ -15,11 +15,12 @@ export class UserModel extends Model {
     }
     static associate() {
         UserModel.belongsTo(RestaurantModel, { as: "Owner" });
-        UserModel.belongsTo(RestaurantModel, { as: "Employees" });
+        UserModel.belongsTo(RestaurantModel, { as: "Employee" });
     }
-    static async findByEmail(email: string) {
-        return await UserModel.findOne({where: { email }});
+    static async findByEmail(email: string, include?: Includeable[], attributes?: FindAttributeOptions) {
+        return await UserModel.findOne({where: { email }, include, attributes} );
     }
+    static safeUserAttributes = ["id", "firstname", "lastname", "email", "isAdmin"];
 }
 
 export class User {

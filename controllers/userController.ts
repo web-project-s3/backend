@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
-import { UserModel, User, UserRefreshToken } from "../models/userModel";
-import { refresh, generateAccessToken, generateRefreshToken, isAdmin } from "../auth/userAuth";
+import { UserModel, User, UserRefreshToken, UserAccessToken } from "../models/userModel";
+import { refresh, generateAccessToken, generateRefreshToken, isAdmin, verifyUser } from "../auth/userAuth";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { RestaurantModel } from "../models/restaurantModel";
@@ -108,23 +108,57 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
         });
     });
 
+    server.post<{Body: {code: string}}>("/worksAt", {
+        preHandler: verifyUser,
+        handler: async (request, reply) => {
+            const restaurant = await server.db.models.RestaurantModel.findOne({where: {code: request.body.code}});
+            if ( !restaurant )
+                return reply.code(404).send("Restaurant not found");
+
+            const userId = (request.user as UserAccessToken).id;
+
+            const user = await server.db.models.UserModel.findByPk(userId, { attributes: UserModel.safeUserAttributes });
+
+            if ( !user )
+                return reply.code(404).send("User not found");
+
+            await restaurant.addEmployee(user.id);
+            await user.setEmployee(restaurant);
+            await user.reload({attributes: UserModel.safeUserAttributes, include:[{ model: RestaurantModel, as: "Employee"}, {model: RestaurantModel, as: "Owner"}]});
+            return reply.code(200).send(user);
+        }
+    });
+
     server.get("/", {
         preHandler: isAdmin,
         handler: async (request, reply) => {
             const users = await UserModel.findAll({
-                attributes:["id", "firstname", "lastname", "email", "isAdmin"],
+                attributes: UserModel.safeUserAttributes,
                 include: [{
                     model: RestaurantModel,
-                    as: "Owner"
+                    as: "Owner",
+                    attributes: ["id"]
                 },
                 {
                     model: RestaurantModel,
-                    as: "Employees"
+                    as: "Employee",
+                    attributes: ["id"]
                 }
                 ]
             });
             reply.code(200).send(users);
         },
+    });
+
+    server.delete<{Params: {id: number}}>("/:id", {
+        preHandler:isAdmin, 
+        handler: async ( request, reply ) => {
+            const user = await server.db.models.UserModel.findByPk(request.params.id);
+            if ( !user )
+                return reply.code(404).send("User not found");
+            user.setOwner(null);
+            return reply.code(200).send(await user.destroy());
+        }
     });
 
     done();
