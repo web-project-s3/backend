@@ -1,9 +1,10 @@
 import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
-import { UserModel } from "../models/userModel";
-import { isAdmin } from "../auth/userAuth";
+import { IUserAccessToken, UserModel } from "../models/userModel";
+import { isAdmin, verifyUser } from "../auth/userAuth";
 import { RestaurantModel } from "../models/restaurantModel";
 import { UniqueConstraintError } from "sequelize";
+import createHttpError, { HttpError } from "http-errors";
 
 // Declaration merging
 declare module "fastify" {
@@ -24,7 +25,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                     if ( user )
                     {
                         if ( await user.getOwner() )
-                            return reply.code(409).send("User is already an owner");
+                            return reply.code(409).send(createHttpError(409, "User is already an owner"));
 
                         const restaurant = await server.db.models.RestaurantModel.create( 
                             {   name: request.body.restaurantName, 
@@ -33,16 +34,17 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                         await restaurant.setOwner(user.id);
                         return reply.code(201).send(restaurant);
                     }
-                    else return reply.code(400).send("Owner couldn't be found");
+                    else return reply.code(400).send(createHttpError(400, "Owner couldn't be found"));
                 }
-                else return reply.code(400).send("Restaurant is invalid");
+                else return reply.code(400).send(createHttpError(400, "Restaurant is invalid"));
+
                 
             }
             catch(e) {
                 if ( e instanceof UniqueConstraintError )
                 {
                     console.log(e);
-                    return reply.code(409).send("Restaurant already exists");
+                    return reply.code(409).send(createHttpError(409, "Restaurant already exists"));
                 }
                 else throw e;
             }
@@ -75,12 +77,46 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         handler: async (request, reply) => {
             const restaurant = await server.db.models.RestaurantModel.findByPk(request.params.id);
             if ( !restaurant )
-                return reply.code(404).send("Restaurant not found");
+                return reply.code(404).send(createHttpError(404, "Restaurant not found"));
             restaurant.setOwner(null);
             await restaurant.destroy();
             return reply.code(200).send();
         }
     });
+
+
+    server.get<{Params: {id: number}}>("/:id", {
+        preHandler: verifyUser,
+        handler: async (request, reply) => {
+            
+            const user = await server.db.models.UserModel.findByPk((request.user as IUserAccessToken).id, { attributes: UserModel.safeUserAttributes, include: { model: RestaurantModel, as: "Owner"} });
+            if ( !user )
+            {
+                server.log.error("/restaurants/:id : user should exists at this point");
+                return reply.code(500).send(createHttpError(500));
+            }
+
+            if ( user.isAdmin || user.Owner && user.Owner.id == request.params.id )
+            {
+                const restaurant = await RestaurantModel.findByPk(request.params.id, { attributes: RestaurantModel.fullAttributes, include:[
+                    {
+                        model: UserModel,
+                        attributes: UserModel.safeUserAttributes,
+                        as: "Owner"
+                    },
+                    {
+                        model: UserModel,
+                        attributes: UserModel.safeUserAttributes,
+                        as: "Employee"
+                    }
+                ]});
+                if (!restaurant)
+                    return reply.code(404).send(createHttpError(404, "Restaurant not found"));
+
+                return reply.code(200).send(restaurant);
+            }
+            else return reply.code(403).send(createHttpError(403));
+        }});
 
     done();
 }

@@ -16,6 +16,8 @@ export class RestaurantModel extends Model {
     static isValid(restaurant: Restaurant | RestaurantModel) {
         return restaurant.code && restaurant.name;
     }
+
+    static fullAttributes: ["id", "name", "code"];
 }
 
 export class Restaurant {

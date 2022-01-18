@@ -23,23 +23,21 @@ export class UserModel extends Model {
     static safeUserAttributes = ["id", "firstname", "lastname", "email", "isAdmin"];
 }
 
-export class User {
-    declare firstname: string;
-    declare lastname: string;
-    declare email: string;
-    declare password: string;
-    declare refreshToken: string | undefined;
-
+export interface IUser {
+    firstname: string;
+    lastname: string;
+    email: string;
+    password: string;
+    refreshToken: string | undefined;
 }
 
-export class UserAccessToken {
-    declare id: number;
-    declare isAdmin: boolean;
+export interface IUserAccessToken {
+    id: number;
 }
 
-export class UserRefreshToken {
-    declare email: string;
-    declare password: string;
+export interface IUserRefreshToken {
+    email: string;
+    password: string;
 }
 
 const initObject = {

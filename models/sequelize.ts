@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { ConnectionError, HostNotReachableError, Sequelize } from "sequelize";
+import { ConnectionError, Sequelize } from "sequelize";
 import { Dialect } from "sequelize/types";
 
 import { UserModel } from "./userModel";
