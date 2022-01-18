@@ -1,10 +1,10 @@
 import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
-import { IUserAccessToken, UserModel } from "../models/userModel";
+import { IUserAccessToken, User } from "../models/userModel";
 import { isAdmin, verifyUser } from "../auth/userAuth";
-import { Restaurant, RestaurantModel } from "../models/restaurantModel";
-import { UniqueConstraintError, ValidationError } from "sequelize";
-import createHttpError, { HttpError } from "http-errors";
+import { IRestaurant, Restaurant } from "../models/restaurantModel";
+import { UniqueConstraintError, ValidationError, Op } from "sequelize";
+import createHttpError from "http-errors";
 
 // Declaration merging
 declare module "fastify" {
@@ -21,17 +21,17 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             try {
                 if ( request.body.restaurantName )
                 {
-                    const user = await server.db.models.UserModel.findByEmail(request.body.ownerEmail);
+                    const user = await User.findByEmail(request.body.ownerEmail);
                     if ( user )
                     {
-                        if ( await user.getOwner() )
+                        if ( await user.$get("restaurantOwner") ) //HERE
                             return reply.code(409).send(createHttpError(409, "User is already an owner"));
 
-                        const restaurant = await server.db.models.RestaurantModel.create( 
+                        const restaurant = await Restaurant.create( 
                             {   name: request.body.restaurantName, 
                                 code :  server.jwt.sign({restaurantName: request.body.restaurantName}).substr(-5,5) });
 
-                        await restaurant.setOwner(user.id);
+                        await restaurant.$set("owner", user); //HERE
                         return reply.code(201).send(restaurant);
                     }
                     else return reply.code(400).send(createHttpError(400, "Owner couldn't be found"));
@@ -54,17 +54,17 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
     server.get("/", {
         preHandler: isAdmin,
         handler: async (request, reply) => {
-            const restaurants = await RestaurantModel.findAll({
+            const restaurants = await Restaurant.findAll({
                 attributes: ["id", "code", "name"],
                 include: [{
-                    model: UserModel,
+                    model: User,
                     attributes: ["id"],
-                    as: "Owner"
+                    as: "restaurantOwner"
                 },
                 {
-                    model: UserModel,
+                    model: User,
                     attributes: ["id"],
-                    as: "Employee"
+                    as: "restaurantEmployee"
                 }
                 ]
             });
@@ -75,10 +75,9 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
     server.delete<{Params: {id: number}}>("/:id", {
         preHandler: isAdmin,
         handler: async (request, reply) => {
-            const restaurant = await server.db.models.RestaurantModel.findByPk(request.params.id);
+            const restaurant = await Restaurant.findByPk(request.params.id);
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
-            restaurant.setOwner(null);
             await restaurant.destroy();
             return reply.code(200).send();
         }
@@ -89,25 +88,25 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         preHandler: verifyUser,
         handler: async (request, reply) => {
             
-            const user = await server.db.models.UserModel.findByPk((request.user as IUserAccessToken).id, { attributes: UserModel.safeUserAttributes, include: { model: RestaurantModel, as: "Owner"} });
+            const user = await User.findByPk((request.user as IUserAccessToken).id, { attributes: User.safeUserAttributes, include: { model: Restaurant, as: "restaurantOwner"} });
             if ( !user )
             {
                 server.log.error("/restaurants/:id : user should exists at this point");
                 return reply.code(500).send(createHttpError(500));
             }
 
-            if ( user.isAdmin || user.Owner && user.Owner.id == request.params.id )
+            if ( user.isAdmin || user.restaurantOwner && user.restaurantOwner.id == request.params.id ) //HERE
             {
-                const restaurant = await RestaurantModel.findByPk(request.params.id, { attributes: RestaurantModel.fullAttributes, include:[
+                const restaurant = await Restaurant.findByPk(request.params.id, { attributes: Restaurant.fullAttributes, include:[
                     {
-                        model: UserModel,
-                        attributes: UserModel.safeUserAttributes,
-                        as: "Owner"
+                        model: User,
+                        attributes: User.safeUserAttributes,
+                        as: "restaurantOwner"
                     },
                     {
-                        model: UserModel,
-                        attributes: UserModel.safeUserAttributes,
-                        as: "Employee"
+                        model: User,
+                        attributes: User.safeUserAttributes,
+                        as: "restaurantEmployee"
                     }
                 ]});
                 if (!restaurant)
@@ -118,10 +117,10 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             else return reply.code(403).send(createHttpError(403));
         }});
     
-    server.put<{Params: {id: number}, Body: Restaurant}>("/:id", {
+    server.put<{Params: {id: number}, Body: IRestaurant}>("/:id", {
         preHandler: isAdmin,
         handler: async (request, reply) => {
-            const restaurant = await RestaurantModel.findByPk(request.params.id);
+            const restaurant = await Restaurant.findByPk(request.params.id);
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
             
@@ -146,10 +145,10 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         preHandler:verifyUser,
         handler: async (request, reply) => {
             const userId = (request.user as IUserAccessToken).id;
-            const user = await server.db.models.UserModel.findByPk(userId);
+            const user = await User.findByPk(userId);
             if ( !user )
                 return reply.code(404).send(createHttpError(404, "User not valid"));
-            const restaurant = await user.getOwner();
+            const restaurant = await user.$get("restaurantOwner"); //HERE
 
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "You're not managing any restaurants"));
@@ -160,6 +159,19 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             restaurant.name = request.body.name;
 
             return await restaurant.save();
+        }
+    });
+
+    server.get<{Params: {name: string}}>("/search/:name", {
+        preHandler: isAdmin,
+        handler: async ( request, reply ) => {
+            return reply.code(200).send(await Restaurant.findAll({
+                where:{
+                    name: {
+                        [Op.iLike]: "%" + request.params.name + "%"
+                    }
+                }, 
+            }));
         }
     });
 

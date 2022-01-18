@@ -1,28 +1,55 @@
-import { DataTypes, Model, Sequelize } from "sequelize";
-import { UserModel } from "./userModel";
+import { AllowNull, AutoIncrement, BelongsToMany, Column, ForeignKey, HasMany, HasOne, Model, PrimaryKey, Sequelize, Unique } from "sequelize-typescript";
+import { DataTypes } from "sequelize";
+import { Table } from "sequelize-typescript";
+import { Beach } from "./beachModel";
+import { User } from "./userModel";
+import { BeachRestaurant } from "./beach_restaurantModel";
 
-export class RestaurantModel extends Model {
+@Table
+export class Restaurant extends Model {
+
+    @PrimaryKey
+    @AutoIncrement
+    @Column
     declare id: number;
+
+    @AllowNull(false)
+    @Column
     declare name: string;
+
+    @AllowNull(false)
+    @Unique
+    @Column
     declare code: string;
 
+    @HasOne(() => User, "restaurantOwnerId")
+    declare owner: User;
+
+    @HasMany(() => User, "restaurantEmployeeId")
+    declare employees: User[];
+
+    @BelongsToMany(() => Beach, () => BeachRestaurant)
+    declare beaches: Array<Beach & {BookAuthor: BeachRestaurant}>;
+
+
     static onInit(sequelize: Sequelize){
-        RestaurantModel.init(initObject, { sequelize, modelName: "Restaurant" });
+        Restaurant.init(initObject, { sequelize, modelName: "Restaurant" } );
     }
     static associate(){
-        RestaurantModel.hasOne(UserModel, { as: "Owner" });
-        RestaurantModel.hasMany(UserModel, { as: "Employee" });    
+        Restaurant.hasOne(User, { as: "RestaurantOwner" });
+        Restaurant.hasMany(User, { as: "Employee" });
+        Restaurant.belongsToMany(Beach, { through: "Restaurant_Beach" });    
     }
-    static isValid(restaurant: Restaurant | RestaurantModel) {
+    static isValid(restaurant: IRestaurant | Restaurant) {
         return restaurant.code && restaurant.name;
     }
 
     static fullAttributes: ["id", "name", "code"];
 }
 
-export class Restaurant {
-    declare name: string;
-    declare code: string;
+export interface IRestaurant {
+    name: string;
+    code: string;
 }
 
 export const initObject = {

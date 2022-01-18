@@ -1,15 +1,20 @@
 import { FastifyInstance } from "fastify";
 import { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { ConnectionError, Sequelize } from "sequelize";
+import { Sequelize } from "sequelize-typescript";
+import { ConnectionError } from "sequelize";
 import { Dialect } from "sequelize/types";
 
-import { UserModel } from "./userModel";
-import { RestaurantModel } from "./restaurantModel";
+import { User } from "./userModel";
+import { Restaurant } from "./restaurantModel";
+import { Beach } from "./beachModel";
+import { BeachRestaurant } from "./beach_restaurantModel";
 
 export interface Models {
-	UserModel: any;
-    RestaurantModel: any;
+	User: any;
+    Restaurant: any;
+    Beach: any;
+    BeachRestaurant: any
 }
 
 export interface Db {
@@ -35,11 +40,14 @@ const ConnectDB: FastifyPluginAsync = async (
             fastify.log.info("Connected successfully !");
             connected = true;
 
-            const models: Models = { UserModel, RestaurantModel };
-            models.UserModel.onInit(sequelize);
-            models.RestaurantModel.onInit(sequelize);
-            await models.UserModel.associate();
-            await models.RestaurantModel.associate();
+            const models: Models = { User, Restaurant, Beach, BeachRestaurant };
+            sequelize.addModels([User, Restaurant, Beach, BeachRestaurant]);
+            // models.User.onInit(sequelize);
+            // models.Restaurant.onInit(sequelize);
+            // models.Beach.onInit(sequelize);
+            // await models.User.associate();
+            // await models.Restaurant.associate();
+            // await models.Beach.associate();
             await sequelize.sync();
               
             fastify.decorate("db", { models });

@@ -1,7 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import createHttpError from "http-errors";
 import jwt from "jsonwebtoken";
-import { IUserAccessToken, IUserRefreshToken, UserModel } from "../models/userModel";
+import { IUserAccessToken, IUserRefreshToken, User } from "../models/userModel";
 
 export const refresh = process.env["REFRESH_TOKEN"]!;
 export const access = process.env["ACCESS_TOKEN"]!;
@@ -15,7 +15,7 @@ if ( !refresh || !access )
 export async function isAdmin(request: FastifyRequest, reply: FastifyReply) {
     await verifyUser(request, reply);
 
-    const user = await UserModel.findByPk((request.user as IUserAccessToken).id, {attributes: ["isAdmin"]});
+    const user = await User.findByPk((request.user as IUserAccessToken).id, {attributes: ["isAdmin"]});
 
     if ( !user?.isAdmin )
         return reply.status(403).send(createHttpError(403));

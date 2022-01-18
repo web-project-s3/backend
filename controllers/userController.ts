@@ -1,12 +1,12 @@
 import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
-import { UserModel, IUser, IUserRefreshToken, IUserAccessToken } from "../models/userModel";
+import { User, IUser, IUserRefreshToken, IUserAccessToken } from "../models/userModel";
 import { refresh, generateAccessToken, generateRefreshToken, isAdmin, verifyUser } from "../auth/userAuth";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { RestaurantModel } from "../models/restaurantModel";
+import { Restaurant } from "../models/restaurantModel";
 import createHttpError from "http-errors";
-import { ValidationError } from "sequelize";
+import { Sequelize, ValidationError, Op} from "sequelize";
 
 // Declaration merging
 declare module "fastify" {
@@ -21,7 +21,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
         {
             try
             {
-                const findUser = await server.db.models.UserModel.findOne({where: {
+                const findUser = await User.findOne({where: {
                     email: request.body.email
                 }});
 
@@ -33,16 +33,16 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                     return reply.code(400).send(createHttpError(400, "Password must be at least 6 characters long"));
                 
                 const password = await bcrypt.hash(request.body.password, 10);
-                const userModel: IUser = {
+                const user = new User({
                     firstname: request.body.firstname,
                     lastname: request.body.lastname,
                     email: request.body.email,
                     password,
-                    refreshToken: await generateRefreshToken({ email: request.body.email, password })
-                };
-                
-                await server.db.models.UserModel.create(userModel);
-                reply.code(201).send({refreshToken: userModel.refreshToken});
+                    refreshToken: await generateRefreshToken({ email: request.body.email, password }),
+                    isAdmin: false 
+                });
+                user.save();
+                reply.code(201).send({user});
             }
             catch(e)
             {
@@ -57,7 +57,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
         {
             try
             {
-                const findUser = await server.db.models.UserModel.findOne({where: {
+                const findUser = await User.findOne({where: {
                     email: request.body.email
                 }});
 
@@ -97,7 +97,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
         if(refreshToken == null)
             return reply.code(400).send(createHttpError(400, "Invalid refresh token"));
 
-        const user: UserModel = await server.db.models.UserModel.findOne({where: {refreshToken}});
+        const user = await User.findOne({where: {refreshToken}});
 
         if(!user)
         {
@@ -117,20 +117,20 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
     server.post<{Body: {code: string}}>("/worksAt", {
         preHandler: verifyUser,
         handler: async (request, reply) => {
-            const restaurant = await server.db.models.RestaurantModel.findOne({where: {code: request.body.code}});
+            const restaurant = await Restaurant.findOne({where: {code: request.body.code}});
             if ( !restaurant )
                 return reply.code(404).send(createHttpError("Restaurant not found"));
 
             const userId = (request.user as IUserAccessToken).id;
 
-            const user = await server.db.models.UserModel.findByPk(userId, { attributes: UserModel.safeUserAttributes });
+            const user = await server.db.models.User.findByPk(userId, { attributes: User.safeUserAttributes });
 
             if ( !user )
                 return reply.code(404).send(createHttpError(404, "User not found"));
 
-            await restaurant.addEmployee(user.id);
+            await restaurant.$add("User", user.id, {through: "restaurantEmployeeId"}); //HERE
             await user.setEmployee(restaurant);
-            await user.reload({attributes: UserModel.safeUserAttributes, include:[{ model: RestaurantModel, as: "Employee"}, {model: RestaurantModel, as: "Owner"}]});
+            await user.reload({attributes: User.safeUserAttributes, include:[{ model: Restaurant, as: "restaurantEmployee"}, {model: Restaurant, as: "restaurantOwner"}]});
             return reply.code(200).send(user);
         }
     });
@@ -138,16 +138,16 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
     server.get("/", {
         preHandler: isAdmin,
         handler: async (request, reply) => {
-            const users = await UserModel.findAll({
-                attributes: UserModel.safeUserAttributes,
+            const users = await User.findAll({
+                attributes: User.safeUserAttributes,
                 include: [{
-                    model: RestaurantModel,
-                    as: "Owner",
+                    model: Restaurant,
+                    as: "restaurantOwner",
                     attributes: ["id"]
                 },
                 {
-                    model: RestaurantModel,
-                    as: "Employee",
+                    model: Restaurant,
+                    as: "restaurantEmployee",
                     attributes: ["id"]
                 }
                 ]
@@ -162,16 +162,16 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
             if ( request.params.id != ((request.user) as IUserAccessToken).id )
                 await isAdmin(request, reply);
 
-            const user = await UserModel.findByPk(request.params.id, { attributes: UserModel.safeUserAttributes,
+            const user = await User.findByPk(request.params.id, { attributes: User.safeUserAttributes,
                 include: [{
-                    model: RestaurantModel,
-                    as: "Owner",
-                    attributes: RestaurantModel.fullAttributes
+                    model: Restaurant,
+                    as: "restaurantOwner",
+                    attributes: Restaurant.fullAttributes
                 },
                 {
-                    model: RestaurantModel,
-                    as: "Employee",
-                    attributes: RestaurantModel.fullAttributes
+                    model: Restaurant,
+                    as: "restaurantEmployee",
+                    attributes: Restaurant.fullAttributes
                 }]});
 
             if ( !user )
@@ -183,18 +183,17 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
     server.delete<{Params: {id: number}}>("/:id", {
         preHandler:isAdmin, 
         handler: async ( request, reply ) => {
-            const user = await server.db.models.UserModel.findByPk(request.params.id);
+            const user = await User.findByPk(request.params.id);
             if ( !user )
                 return reply.code(404).send(createHttpError(404, "User not found"));
-            user.setOwner(null);
             return reply.code(200).send(await user.destroy());
         }
     });
 
-    server.put<{Body: UserModel, Params: {id: number}}>("/:id", {
+    server.put<{Body: User, Params: {id: number}}>("/:id", {
         preHandler:isAdmin,
         handler: async ( request, reply ) => {
-            const user = await UserModel.findByPk(request.params.id);
+            const user = await User.findByPk(request.params.id);
             const b = request.body;
 
             if ( !user )
@@ -227,7 +226,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
     server.patch<{Body: IUser, Params: {id: number}}>("/", {
         preHandler:verifyUser,
         handler: async ( request, reply ) => {
-            const user = await UserModel.findByPk((request.user as IUserAccessToken).id);
+            const user = await User.findByPk((request.user as IUserAccessToken).id);
             const b = request.body;
 
             if ( !user )
@@ -255,6 +254,23 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                     return reply.code(409).send("Email is already taken");
                 return reply.code(500).send(createHttpError(500));
             }   
+        }
+    });
+
+    server.get<{Params: {firstname: string, lastname: string}}>("/:firstname/:lastname", {
+        preHandler: isAdmin,
+        handler: async ( request, reply ) => {
+            return reply.code(200).send(await User.findAll({
+                where:{
+                    firstname: {
+                        [Op.iLike]: "%" + request.params.firstname + "%"
+                    },
+                    lastname: {
+                        [Op.iLike]: "%" + request.params.lastname + "%"
+                    }
+                }, 
+                attributes: User.safeUserAttributes
+            }));
         }
     });
 

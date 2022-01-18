@@ -1,26 +1,82 @@
-import { DataTypes, FindAttributeOptions, Includeable, Model, Sequelize } from "sequelize";
-import { RestaurantModel } from "./restaurantModel";
+import { DataTypes, FindAttributeOptions, Includeable } from "sequelize";
+import { Sequelize, Model, Table, Column, AllowNull, Unique, PrimaryKey, AutoIncrement, BelongsTo, ForeignKey } from "sequelize-typescript";
+import { Beach } from "./beachModel";
+import { Restaurant } from "./restaurantModel";
 
-export class UserModel extends Model {
+@Table
+export class User extends Model {
+
+    @PrimaryKey
+    @AutoIncrement
+    @Column
     declare id: number;
+
+    @AllowNull(false)
+    @Column
     declare firstname: string;
+
+    @AllowNull(false)
+    @Column
     declare lastname: string;
+
+    @AllowNull(false)
+    @Unique
+    @Column
     declare email: string;
+
+    @AllowNull(false)
+    @Column
     declare password: string;
+
+    @AllowNull(false)
+    @Unique
+    @Column
     declare refreshToken: string;
+
+    @AllowNull(false)
+    @Column
     declare isAdmin: boolean;
 
+    @ForeignKey(() => Restaurant)
+    @Column
+    declare restaurantOwnerId: number;
+
+    @ForeignKey(() => Restaurant)
+    @Column
+    declare restaurantEmployeeId: number;
+
+    @ForeignKey(() => Beach)
+    @Column
+    declare beachOwnerId: number;
+
+    @BelongsTo(() => Restaurant)
+    declare restaurantOwner: Restaurant;
+
+    @BelongsTo(() => Restaurant)
+    declare restaurantEmployee: Restaurant;
+
+    @BelongsTo(() => Beach)
+    declare beachOwner: Beach;
+
     static onInit(sequelize: Sequelize){
-        UserModel.init(initObject, { sequelize, modelName: "Users" });
+        User.init(initObject, { sequelize, modelName: "Users" });
     }
     static associate() {
-        UserModel.belongsTo(RestaurantModel, { as: "Owner" });
-        UserModel.belongsTo(RestaurantModel, { as: "Employee" });
+        User.belongsTo(Restaurant, { as: "RestaurantOwner" });
+        User.belongsTo(Beach, { as: "BeachOwner" });
+        User.belongsTo(Restaurant, { as: "Employee" });
     }
     static async findByEmail(email: string, include?: Includeable[], attributes?: FindAttributeOptions) {
-        return await UserModel.findOne({where: { email }, include, attributes} );
+        return await User.findOne({where: { email }, include, attributes} );
     }
     static safeUserAttributes = ["id", "firstname", "lastname", "email", "isAdmin"];
+
+    // async isOwner() {
+    //     if ( await this.$get("RestaurantOwner") || this.getBeachOwner())
+    //         return false;
+    //     return true;
+    // }
+
 }
 
 export interface IUser {
