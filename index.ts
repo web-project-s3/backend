@@ -6,7 +6,14 @@ import jwt from "fastify-jwt";
 import { access } from "./auth/userAuth";
 
 const server = fastify({
-    logger: true
+    logger: process.env["WEB_APP_ENVIRONMENT"] === "development" ? {
+        prettyPrint: {
+            translateTime: "HH:MM:ss Z",
+            ignore: "pid,hostname"
+        },
+        level: "debug"
+    } : true,
+    pluginTimeout: 3000000
 });
 
 server.register(jwt, { secret: access });
