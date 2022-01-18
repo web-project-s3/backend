@@ -2,8 +2,8 @@ import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
 import { IUserAccessToken, UserModel } from "../models/userModel";
 import { isAdmin, verifyUser } from "../auth/userAuth";
-import { RestaurantModel } from "../models/restaurantModel";
-import { UniqueConstraintError } from "sequelize";
+import { Restaurant, RestaurantModel } from "../models/restaurantModel";
+import { UniqueConstraintError, ValidationError } from "sequelize";
 import createHttpError, { HttpError } from "http-errors";
 
 // Declaration merging
@@ -117,6 +117,51 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             }
             else return reply.code(403).send(createHttpError(403));
         }});
+    
+    server.put<{Params: {id: number}, Body: Restaurant}>("/:id", {
+        preHandler: isAdmin,
+        handler: async (request, reply) => {
+            const restaurant = await RestaurantModel.findByPk(request.params.id);
+            if ( !restaurant )
+                return reply.code(404).send(createHttpError(404, "Restaurant not found"));
+            
+            if ( !request.body.code && !request.body.name )
+                return reply.code(400).send(createHttpError(400, "Restaurant is missing fields"));
+            
+            Object.assign(restaurant, request.body);
+
+            try {
+                return reply.code(200).send(await restaurant.save());
+            }
+            catch(e) {
+                server.log.error(e);
+                if ( e instanceof ValidationError )
+                    return reply.code(409).send(createHttpError(409, "Code is not unique"));
+                return reply.code(500).send(createHttpError(500));
+            }
+        }
+    });
+
+    server.patch<{Body: {name: string}}>("/", {
+        preHandler:verifyUser,
+        handler: async (request, reply) => {
+            const userId = (request.user as IUserAccessToken).id;
+            const user = await server.db.models.UserModel.findByPk(userId);
+            if ( !user )
+                return reply.code(404).send(createHttpError(404, "User not valid"));
+            const restaurant = await user.getOwner();
+
+            if ( !restaurant )
+                return reply.code(404).send(createHttpError(404, "You're not managing any restaurants"));
+            
+            if ( !request.body.name )
+                return reply.code(400).send(createHttpError(400, "Restaurant must have a name"));
+
+            restaurant.name = request.body.name;
+
+            return await restaurant.save();
+        }
+    });
 
     done();
 }
