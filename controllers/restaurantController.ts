@@ -125,7 +125,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
             
-            if ( Restaurant.isValid(request.body))
+            if ( !Restaurant.isValid(request.body))
                 return reply.code(400).send(createHttpError(400, "Restaurant is missing fields"));
             
             Object.assign(restaurant, request.body);

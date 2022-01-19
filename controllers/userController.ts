@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { Restaurant } from "../models/restaurantModel";
 import createHttpError from "http-errors";
 import { Sequelize, ValidationError, Op} from "sequelize";
+import { Beach } from "../models/beachModel";
 
 // Declaration merging
 declare module "fastify" {
@@ -148,6 +149,10 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                     model: Restaurant,
                     as: "restaurantEmployee",
                     attributes: ["id"]
+                },
+                {
+                    model: Beach,
+                    attributes: ["id"]
                 }
                 ]
             });
@@ -171,7 +176,12 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                     model: Restaurant,
                     as: "restaurantEmployee",
                     attributes: Restaurant.fullAttributes
-                }]});
+                },
+                {
+                    model: Beach,
+                    attributes: Beach.fullAttributes
+                }
+                ]});
 
             if ( !user )
                 return reply.code(404).send(createHttpError(404, "User not found"));
