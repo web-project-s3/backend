@@ -24,17 +24,17 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                     const user = await User.findByEmail(request.body.ownerEmail);
                     if ( user )
                     {
-                        if ( await user.$get("restaurantOwner") ) //HERE
+                        if ( await user.$get("restaurantOwner") )
                             return reply.code(409).send(createHttpError(409, "User is already an owner"));
 
                         const restaurant = await Restaurant.create( 
                             {   name: request.body.restaurantName, 
                                 code :  server.jwt.sign({restaurantName: request.body.restaurantName}).substr(-5,5) });
 
-                        await restaurant.$set("owner", user); //HERE
+                        await restaurant.$set("owner", user.id);
                         return reply.code(201).send(restaurant);
                     }
-                    else return reply.code(400).send(createHttpError(400, "Owner couldn't be found"));
+                    else return reply.code(404).send(createHttpError(404, "Owner couldn't be found"));
                 }
                 else return reply.code(400).send(createHttpError(400, "Restaurant is invalid"));
 
@@ -59,12 +59,12 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 include: [{
                     model: User,
                     attributes: ["id"],
-                    as: "restaurantOwner"
+                    as: "owner"
                 },
                 {
                     model: User,
                     attributes: ["id"],
-                    as: "restaurantEmployee"
+                    as: "employees"
                 }
                 ]
             });
@@ -78,6 +78,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             const restaurant = await Restaurant.findByPk(request.params.id);
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
+            await restaurant.$set("owner", null);
             await restaurant.destroy();
             return reply.code(200).send();
         }
@@ -95,18 +96,18 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 return reply.code(500).send(createHttpError(500));
             }
 
-            if ( user.isAdmin || user.restaurantOwner && user.restaurantOwner.id == request.params.id ) //HERE
+            if ( user.isAdmin || user.restaurantOwner && user.restaurantOwner.id == request.params.id )
             {
                 const restaurant = await Restaurant.findByPk(request.params.id, { attributes: Restaurant.fullAttributes, include:[
                     {
                         model: User,
                         attributes: User.safeUserAttributes,
-                        as: "restaurantOwner"
+                        as: "owner"
                     },
                     {
                         model: User,
                         attributes: User.safeUserAttributes,
-                        as: "restaurantEmployee"
+                        as: "employees"
                     }
                 ]});
                 if (!restaurant)

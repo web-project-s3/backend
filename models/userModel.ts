@@ -49,10 +49,10 @@ export class User extends Model {
     @Column
     declare beachOwnerId: number;
 
-    @BelongsTo(() => Restaurant)
+    @BelongsTo(() => Restaurant, "restaurantOwnerId")
     declare restaurantOwner: Restaurant;
 
-    @BelongsTo(() => Restaurant)
+    @BelongsTo(() => Restaurant, "restaurantEmployeeId")
     declare restaurantEmployee: Restaurant;
 
     @BelongsTo(() => Beach)
