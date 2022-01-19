@@ -71,11 +71,11 @@ export class User extends Model {
     }
     static safeUserAttributes = ["id", "firstname", "lastname", "email", "isAdmin"];
 
-    // async isOwner() {
-    //     if ( await this.$get("RestaurantOwner") || this.getBeachOwner())
-    //         return false;
-    //     return true;
-    // }
+    async isOwner() {
+        if ( await this.$get("restaurantOwner") || this.$get("beachOwner"))
+            return false;
+        return true;
+    }
 
 }
 

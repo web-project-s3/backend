@@ -14,7 +14,7 @@ export interface Models {
 	User: any;
     Restaurant: any;
     Beach: any;
-    BeachRestaurant: any
+    BeachRestaurant: any;
 }
 
 export interface Db {

@@ -24,7 +24,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                     const user = await User.findByEmail(request.body.ownerEmail);
                     if ( user )
                     {
-                        if ( await user.$get("restaurantOwner") )
+                        if ( await user.isOwner() )
                             return reply.code(409).send(createHttpError(409, "User is already an owner"));
 
                         const restaurant = await Restaurant.create( 
@@ -125,7 +125,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
             
-            if ( !request.body.code && !request.body.name )
+            if ( Restaurant.isValid(request.body))
                 return reply.code(400).send(createHttpError(400, "Restaurant is missing fields"));
             
             Object.assign(restaurant, request.body);

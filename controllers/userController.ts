@@ -128,8 +128,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
             if ( !user )
                 return reply.code(404).send(createHttpError(404, "User not found"));
 
-            await restaurant.$add("User", user.id, {through: "restaurantEmployeeId"}); //HERE
-            await user.setEmployee(restaurant);
+            await restaurant.$add("Employee", user.id);
             await user.reload({attributes: User.safeUserAttributes, include:[{ model: Restaurant, as: "restaurantEmployee"}, {model: Restaurant, as: "restaurantOwner"}]});
             return reply.code(200).send(user);
         }

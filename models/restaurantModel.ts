@@ -31,15 +31,6 @@ export class Restaurant extends Model {
     @BelongsToMany(() => Beach, () => BeachRestaurant)
     declare beaches: Array<Beach & {BookAuthor: BeachRestaurant}>;
 
-
-    static onInit(sequelize: Sequelize){
-        Restaurant.init(initObject, { sequelize, modelName: "Restaurant" } );
-    }
-    static associate(){
-        Restaurant.hasOne(User, { as: "RestaurantOwner" });
-        Restaurant.hasMany(User, { as: "Employee" });
-        Restaurant.belongsToMany(Beach, { through: "Restaurant_Beach" });    
-    }
     static isValid(restaurant: IRestaurant | Restaurant) {
         return restaurant.code && restaurant.name;
     }

@@ -2,6 +2,7 @@ import { fastify } from "fastify";
 import db  from "./models/sequelize";
 import usersRoute from "./controllers/userController";
 import restaurantsRoute from "./controllers/restaurantController";
+import beachRoute from "./controllers/beachController";
 import jwt from "fastify-jwt";
 import { access } from "./auth/userAuth";
 
@@ -20,4 +21,5 @@ server.register(jwt, { secret: access });
 server.register(db);
 server.register(usersRoute, {prefix: "/users"});
 server.register(restaurantsRoute, {prefix: "/restaurants"});
+server.register(beachRoute, {prefix: "/beaches"});
 server.listen(8080);
