@@ -42,12 +42,6 @@ const ConnectDB: FastifyPluginAsync = async (
 
             const models: Models = { User, Restaurant, Beach, BeachRestaurant };
             sequelize.addModels([User, Restaurant, Beach, BeachRestaurant]);
-            // models.User.onInit(sequelize);
-            // models.Restaurant.onInit(sequelize);
-            // models.Beach.onInit(sequelize);
-            // await models.User.associate();
-            // await models.Restaurant.associate();
-            // await models.Beach.associate();
             await sequelize.sync();
               
             fastify.decorate("db", { models });

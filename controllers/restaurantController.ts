@@ -38,8 +38,6 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                     else return reply.code(404).send(createHttpError(404, "Owner couldn't be found"));
                 }
                 else return reply.code(400).send(createHttpError(400, "Restaurant is invalid"));
-
-                
             }
             catch(e) {
                 if ( e instanceof UniqueConstraintError )
@@ -83,7 +81,6 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             const restaurant = await Restaurant.findByPk(request.params.id);
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
-            await restaurant.$set("owner", null);
             await restaurant.destroy();
             return reply.code(200).send();
         }

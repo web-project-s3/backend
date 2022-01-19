@@ -55,12 +55,21 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         handler: async (request, reply) => {
             const beach = await Beach.findAll({
                 attributes: ["id", "code", "name"],
-                include: {
+                include: [{
                     model: User,
                     attributes: ["id"],
                     as: "owner"
+                },
+                {
+                    model: User,
+                    attributes: ["id"],
+                    as: "employees"
+                },
+                {
+                    model: Restaurant, 
+                    attributes: ["id"],
                 }
-            });
+                ]});
             reply.code(200).send(beach);
         },
     });
@@ -71,7 +80,6 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             const beach = await Beach.findByPk(request.params.id);
             if ( !beach )
                 return reply.code(404).send(createHttpError(404, "Beach not found"));
-            await beach.$set("owner", null);
             await beach.destroy();
             return reply.code(200).send();
         }
@@ -96,6 +104,15 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                         model: User,
                         attributes: User.safeUserAttributes,
                         as: "owner"
+                    },
+                    {
+                        model: User, 
+                        attributes: User.safeUserAttributes,
+                        as: "employees"
+                    },
+                    {
+                        model: Restaurant,
+                        attributes: Restaurant.fullAttributes
                     }
                 ]});
                 if (!beach)
@@ -163,6 +180,57 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             }));
         }
     });
+
+    server.post<{Body: {id: number, code: string}}>("/restaurant", {
+        preHandler: verifyUser,
+        handler: async ( request, reply ) => {
+            const user = await User.findByPk((request.user as IUserAccessToken).id);
+            if ( user )
+            {
+                let beach: Beach | null = null;
+                if ( user.isAdmin )
+                    beach = await Beach.findByPk(request.body.id);
+                else
+                    beach = await user.ownsBeach(request.body.id, reply);
+
+                if ( !beach )
+                    return reply.code(404).send(createHttpError(404, "Beach not found"));
+                
+                const restaurant = await Beach.findOne({ where: { code: request.body.code }});
+                if ( !restaurant )
+                    return reply.code(404).send(createHttpError(404, "Restaurant not found"));
+
+                if ( await restaurant.$has("beaches", beach.id) )
+                    return reply.code(409).send(createHttpError(409, "Already a partner of this restaurant"));
+
+                return reply.code(200).send(await restaurant.$add("beaches", beach));
+            }
+        }
+    });
+
+    server.delete<{Body: {restaurantId: string, beachId: string}}>("/restaurants", {
+        preHandler: verifyUser, 
+        handler: async ( request, reply ) => {
+            const user = await User.findByPk((request.user as IUserAccessToken).id);
+            if ( user )
+            {
+                let beach: Beach | null = null;
+                if ( user.isAdmin )
+                    beach = await Beach.findByPk(request.body.beachId);
+                else
+                    beach = await user.ownsBeach(parseInt(request.body.beachId), reply);
+
+                if ( !beach )
+                    return reply.code(404).send(createHttpError(404, "Beach not found"));
+
+                if ( !await beach.$remove("restaurants", request.body.restaurantId) )
+                    return reply.code(404).send(createHttpError(404, "Beach is not a partner"));
+
+                return reply.code(204).send();
+            }
+        }
+    });
+
 
     done();
 }

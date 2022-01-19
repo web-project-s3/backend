@@ -119,19 +119,34 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
         preHandler: verifyUser,
         handler: async (request, reply) => {
             const restaurant = await Restaurant.findOne({where: {code: request.body.code}});
-            if ( !restaurant )
-                return reply.code(404).send(createHttpError("Restaurant not found"));
+            const beach = await Beach.findOne({where:{ code: request.body.code}});
+
+            if ( !restaurant && !beach )
+                return reply.code(404).send(createHttpError("Restaurant or beach not found"));
 
             const userId = (request.user as IUserAccessToken).id;
 
-            const user = await server.db.models.User.findByPk(userId, { attributes: User.safeUserAttributes });
+            const user = await User.findByPk(userId, { attributes: User.safeUserAttributes });
 
             if ( !user )
                 return reply.code(404).send(createHttpError(404, "User not found"));
 
-            await restaurant.$add("Employee", user.id);
-            await user.reload({attributes: User.safeUserAttributes, include:[{ model: Restaurant, as: "restaurantEmployee"}, {model: Restaurant, as: "restaurantOwner"}]});
-            return reply.code(200).send(user);
+            if (restaurant)
+            {
+                await restaurant.$add("Employee", user.id);
+                await user.$remove("beachEmployeeId", user.id);
+            }
+            else
+            {
+                await beach?.$add("Employee", user.id);
+                await beach?.$remove("restaurantEmployeeId", user.id);
+            }
+
+            return reply.code(200).send(await user.reload({attributes: User.safeUserAttributes, include:[
+                { model: Restaurant, as: "restaurantEmployee"}, 
+                { model: Restaurant, as: "restaurantOwner"},
+                { model: Beach, as: "beachEmployee"},
+                { model: Beach, as: "beachOwner"}]}));
         }
     });
 
@@ -152,11 +167,17 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                 },
                 {
                     model: Beach,
+                    as: "beachOwner",
+                    attributes: ["id"]
+                },
+                {
+                    model: Beach,
+                    as: "beachEmployee",
                     attributes: ["id"]
                 }
                 ]
             });
-            reply.code(200).send(users);
+            return reply.code(200).send(users);
         },
     });
 
@@ -179,6 +200,12 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                 },
                 {
                     model: Beach,
+                    as: "beachOwner",
+                    attributes: Beach.fullAttributes
+                },
+                {
+                    model: Beach,
+                    as: "beachEmployee", 
                     attributes: Beach.fullAttributes
                 }
                 ]});

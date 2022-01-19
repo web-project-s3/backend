@@ -51,14 +51,20 @@ export class User extends Model {
     @Column
     declare beachOwnerId: number;
 
+    @ForeignKey(() => Beach)
+    declare beachEmployeeId: number;
+
     @BelongsTo(() => Restaurant, "restaurantOwnerId")
     declare restaurantOwner: Restaurant;
 
     @BelongsTo(() => Restaurant, "restaurantEmployeeId")
     declare restaurantEmployee: Restaurant;
 
-    @BelongsTo(() => Beach)
+    @BelongsTo(() => Beach, "beachOwnerId")
     declare beachOwner: Beach;
+
+    @BelongsTo(() => Beach, "beachEmployeeId")
+    declare beachEmployee: Beach;
 
     static onInit(sequelize: Sequelize){
         User.init(initObject, { sequelize, modelName: "Users" });
@@ -92,11 +98,17 @@ export class User extends Model {
         return restaurant;
     }
 
-    async ownsBeach(id: number) : Promise<Beach | null>{
+    async ownsBeach(id: number, reply?: FastifyReply) : Promise<Beach | null>{
         const beach = await this.$get("beachOwner");
-        if ( !beach || beach.id != id )
-            return null;
-        else return beach;
+        if ( !beach )
+            if ( reply )
+                return reply.code(404).send(createHttpError(404, `User ${id} doesn't own any beaches`));
+            else return null;
+        if ( beach.id !== id )
+            if ( reply )
+                return reply.code(403).send(createHttpError(403, "This is not your beach"));
+            else return null;
+        return beach;
     }
 
 }

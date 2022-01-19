@@ -1,4 +1,4 @@
-import { AllowNull, AutoIncrement, BelongsToMany, Column, HasOne, Model, PrimaryKey, Sequelize, Table, Unique } from "sequelize-typescript";
+import { AllowNull, AutoIncrement, BelongsToMany, Column, HasMany, HasOne, Model, PrimaryKey, Sequelize, Table, Unique } from "sequelize-typescript";
 import { DataTypes } from "sequelize";
 import { Restaurant } from "./restaurantModel";
 import { User } from "./userModel";
@@ -23,6 +23,9 @@ export class Beach extends Model {
 
     @HasOne(() => User, "beachOwnerId")
     declare owner: User;
+
+    @HasMany(() => User, "beachEmployeeId")
+    declare employees: User[];
 
     @BelongsToMany(() => Restaurant, () => BeachRestaurant)
     declare restaurants: Array<Restaurant & {BookAuthor: BeachRestaurant}>;
