@@ -2,6 +2,8 @@ import { DataTypes, FindAttributeOptions, Includeable } from "sequelize";
 import { Sequelize, Model, Table, Column, AllowNull, Unique, PrimaryKey, AutoIncrement, BelongsTo, ForeignKey } from "sequelize-typescript";
 import { Beach } from "./beachModel";
 import { Restaurant } from "./restaurantModel";
+import { FastifyReply } from "fastify";
+import createHttpError from "http-errors";
 
 @Table
 export class User extends Model {
@@ -75,6 +77,26 @@ export class User extends Model {
         if ( await this.$get("restaurantOwner") || await this.$get("beachOwner"))
             return true;
         return false;
+    }
+
+    async ownsRestaurant(id: number, reply?: FastifyReply) : Promise<Restaurant | null>{
+        const restaurant = await this.$get("restaurantOwner");
+        if ( !restaurant )
+            if ( reply )
+                return reply.code(404).send(createHttpError(404, `User ${id} doesn't own any restaurant`));
+            else return null;
+        if ( restaurant.id !== id )
+            if ( reply )
+                return reply.code(403).send(createHttpError(403, "This is not your restaurant"));
+            else return null;
+        return restaurant;
+    }
+
+    async ownsBeach(id: number) : Promise<Beach | null>{
+        const beach = await this.$get("beachOwner");
+        if ( !beach || beach.id != id )
+            return null;
+        else return beach;
     }
 
 }

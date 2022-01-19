@@ -1,10 +1,11 @@
 import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
-import { IUserAccessToken, User } from "../models/userModel";
+import { IUser, IUserAccessToken, User } from "../models/userModel";
 import { isAdmin, verifyUser } from "../auth/userAuth";
 import { IRestaurant, Restaurant } from "../models/restaurantModel";
 import { UniqueConstraintError, ValidationError, Op } from "sequelize";
 import createHttpError from "http-errors";
+import { Beach } from "../models/beachModel";
 
 // Declaration merging
 declare module "fastify" {
@@ -65,6 +66,10 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                     model: User,
                     attributes: ["id"],
                     as: "employees"
+                },
+                {
+                    model: Beach,
+                    attributes: ["id"],
                 }
                 ]
             });
@@ -108,6 +113,10 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                         model: User,
                         attributes: User.safeUserAttributes,
                         as: "employees"
+                    },
+                    {
+                        model: Beach,
+                        attributes: Beach.fullAttributes
                     }
                 ]});
                 if (!restaurant)
@@ -173,6 +182,56 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                     }
                 }, 
             }));
+        }
+    });
+
+    server.post<{Body: {id: number, code: string}}>("/beach", {
+        preHandler: verifyUser,
+        handler: async ( request, reply ) => {
+            const user = await User.findByPk((request.user as IUserAccessToken).id);
+            if ( user )
+            {
+                let restaurant: Restaurant | null = null;
+                if ( user.isAdmin )
+                    restaurant = await Restaurant.findByPk(request.body.id);
+                else
+                    restaurant = await user.ownsRestaurant(request.body.id, reply);
+
+                if ( !restaurant )
+                    return reply.code(404).send(createHttpError(404, "Restaurant not found"));
+                
+                const beach = await Beach.findOne({ where: { code: request.body.code }});
+                if ( !beach )
+                    return reply.code(404).send(createHttpError(404, "Beach could not be found"));
+
+                if ( await beach.$has("restaurants", restaurant.id) )
+                    return reply.code(409).send(createHttpError(409, "Already a partner of this beach"));
+
+                return reply.code(200).send(await beach.$add("restaurants", restaurant));
+            }
+        }
+    });
+
+    server.delete<{Body: {restaurantId: string, beachId: string}}>("/beach", {
+        preHandler: verifyUser, 
+        handler: async ( request, reply ) => {
+            const user = await User.findByPk((request.user as IUserAccessToken).id);
+            if ( user )
+            {
+                let restaurant: Restaurant | null = null;
+                if ( user.isAdmin )
+                    restaurant = await Restaurant.findByPk(request.body.restaurantId);
+                else
+                    restaurant = await user.ownsRestaurant(parseInt(request.body.restaurantId), reply);
+
+                if ( !restaurant )
+                    return reply.code(404).send(createHttpError(404, "Restaurant not found"));
+
+                if ( !await restaurant.$remove("beaches", request.body.beachId) )
+                    return reply.code(404).send(createHttpError(404, "Beach is not a partner"));
+
+                return reply.code(204).send();
+            }
         }
     });
 
