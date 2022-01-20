@@ -3,7 +3,7 @@ import { DataTypes } from "sequelize";
 import { Table } from "sequelize-typescript";
 import { Beach } from "./beachModel";
 import { User } from "./userModel";
-import { BeachRestaurant } from "./beach_restaurantModel";
+import { BeachRestaurantProduct } from "./beach_restaurant_product";
 import { Restaurant } from "./restaurantModel";
 
 @Table
@@ -22,12 +22,12 @@ export class Product extends Model {
     @Column
     declare imageUrl: string;
 
-    @ForeignKey(() => Restaurant)
-    @Column
-    declare restaurantId: number;
+    @BelongsToMany(() => Restaurant, () => BeachRestaurantProduct)
+    declare restaurants: Array<Restaurant & {BeachRestaurantProduct: BeachRestaurantProduct}>;
 
-    @BelongsTo(() => Restaurant)
-    declare restaurant: Restaurant;
+    @BelongsToMany(() => Beach, () => BeachRestaurantProduct)
+    declare beaches: Array<Beach & {BeachRestaurantProduct: BeachRestaurantProduct}>;
+
 
     static fullAttributes: ["id", "name", "imageUrl"];
 }
