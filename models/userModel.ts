@@ -66,14 +66,6 @@ export class User extends Model {
     @BelongsTo(() => Beach, "beachEmployeeId")
     declare beachEmployee: Beach;
 
-    static onInit(sequelize: Sequelize){
-        User.init(initObject, { sequelize, modelName: "Users" });
-    }
-    static associate() {
-        User.belongsTo(Restaurant, { as: "RestaurantOwner" });
-        User.belongsTo(Beach, { as: "BeachOwner" });
-        User.belongsTo(Restaurant, { as: "Employee" });
-    }
     static async findByEmail(email: string, include?: Includeable[], attributes?: FindAttributeOptions) {
         return await User.findOne({where: { email }, include, attributes} );
     }
@@ -129,37 +121,3 @@ export interface IUserRefreshToken {
     email: string;
     password: string;
 }
-
-const initObject = {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    firstname: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    lastname: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
-    },
-    password: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    refreshToken: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    isAdmin: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-    }
-};
