@@ -8,15 +8,17 @@ import { Dialect } from "sequelize/types";
 import { User } from "./userModel";
 import { Restaurant } from "./restaurantModel";
 import { Beach } from "./beachModel";
-import { BeachRestaurantProduct } from "./beach_restaurant_product";
 import { Product } from "./productModel";
+import { BeachRestaurant } from "./beach_restaurantModel";
+import { BeachProduct } from "./beach_productsModel";
 
 export interface Models {
 	User: any;
     Restaurant: any;
     Beach: any;
-    BeachRestaurantProduct: any;
     Product: any;
+    BeachProduct: any;
+    BeachRestaurant: any;
 }
 
 export interface Db {
@@ -42,8 +44,8 @@ const ConnectDB: FastifyPluginAsync = async (
             fastify.log.info("Connected successfully !");
             connected = true;
 
-            const models: Models = { User, Restaurant, Beach, Product, BeachRestaurantProduct };
-            sequelize.addModels([User, Restaurant, Beach, Product, BeachRestaurantProduct]);
+            const models: Models = { User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant };
+            sequelize.addModels([User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant]);
             await sequelize.sync();
               
             fastify.decorate("db", { models });

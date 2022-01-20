@@ -1,11 +1,12 @@
 import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
 import { IUserAccessToken, User } from "../models/userModel";
-import { isAdmin, verifyUser } from "../auth/userAuth";
+import { isAdmin, verifyAndFetchAllUser, verifyUser } from "../auth/userAuth";
 import { IRestaurant, Restaurant } from "../models/restaurantModel";
 import { UniqueConstraintError, ValidationError, Op } from "sequelize";
 import createHttpError from "http-errors";
 import { Beach, IBeach } from "../models/beachModel";
+import { Product } from "../models/productModel";
 
 // Declaration merging
 declare module "fastify" {
@@ -68,6 +69,14 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 {
                     model: Restaurant, 
                     attributes: ["id"],
+                    as: "partners"
+                },
+                {
+                    model: Product,
+                    attributes: ["id"],
+                    through: {
+                        attributes: ["price"]
+                    }
                 }
                 ]});
             reply.code(200).send(beach);
@@ -87,15 +96,10 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
 
 
     server.get<{Params: {id: number}}>("/:id", {
-        preHandler: verifyUser,
+        preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
             
-            const user = await User.findByPk((request.user as IUserAccessToken).id, { attributes: User.safeUserAttributes, include: { model: Beach, as: "beachOwner"} });
-            if ( !user )
-            {
-                server.log.error("/beaches/:id : user should exists at this point");
-                return reply.code(500).send(createHttpError(500));
-            }
+            const user = request.body as User;
 
             if ( user.isAdmin || user.beachOwner && user.beachOwner.id == request.params.id )
             {
@@ -112,7 +116,15 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                     },
                     {
                         model: Restaurant,
-                        attributes: Restaurant.fullAttributes
+                        attributes: Restaurant.fullAttributes,
+                        as: "partners"
+                    },
+                    {
+                        model: Product,
+                        attributes: Product.fullAttributes,
+                        through: {
+                            attributes: ["price"]
+                        }
                     }
                 ]});
                 if (!beach)
@@ -182,52 +194,50 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
     });
 
     server.post<{Body: {id: number, code: string}}>("/restaurant", {
-        preHandler: verifyUser,
+        preHandler: verifyAndFetchAllUser,
         handler: async ( request, reply ) => {
-            const user = await User.findByPk((request.user as IUserAccessToken).id);
-            if ( user )
-            {
-                let beach: Beach | null = null;
-                if ( user.isAdmin )
-                    beach = await Beach.findByPk(request.body.id);
-                else
-                    beach = await user.ownsBeach(request.body.id, reply);
+            const user = request.user as User;
 
-                if ( !beach )
-                    return reply.code(404).send(createHttpError(404, "Beach not found"));
+            let beach: Beach | null = null;
+            if ( user.isAdmin )
+                beach = await Beach.findByPk(request.body.id);
+            else
+                beach = await user.ownsBeach(request.body.id, reply);
+
+            if ( !beach )
+                return reply.code(404).send(createHttpError(404, "Beach not found"));
                 
-                const restaurant = await Beach.findOne({ where: { code: request.body.code }});
-                if ( !restaurant )
-                    return reply.code(404).send(createHttpError(404, "Restaurant not found"));
+            const restaurant = await Beach.findOne({ where: { code: request.body.code }});
+            if ( !restaurant )
+                return reply.code(404).send(createHttpError(404, "Restaurant not found"));
 
-                if ( await restaurant.$has("beaches", beach.id) )
-                    return reply.code(409).send(createHttpError(409, "Already a partner of this restaurant"));
+            if ( await restaurant.$has("beaches", beach.id) )
+                return reply.code(409).send(createHttpError(409, "Already a partner of this restaurant"));
 
-                return reply.code(200).send(await restaurant.$add("beaches", beach));
-            }
+            return reply.code(200).send(await restaurant.$add("beaches", beach));
+            
         }
     });
 
     server.delete<{Body: {restaurantId: string, beachId: string}}>("/restaurants", {
-        preHandler: verifyUser, 
+        preHandler: verifyAndFetchAllUser, 
         handler: async ( request, reply ) => {
-            const user = await User.findByPk((request.user as IUserAccessToken).id);
-            if ( user )
-            {
-                let beach: Beach | null = null;
-                if ( user.isAdmin )
-                    beach = await Beach.findByPk(request.body.beachId);
-                else
-                    beach = await user.ownsBeach(parseInt(request.body.beachId), reply);
+            const user = request.user as User;
 
-                if ( !beach )
-                    return reply.code(404).send(createHttpError(404, "Beach not found"));
+            let beach: Beach | null = null;
+            if ( user.isAdmin )
+                beach = await Beach.findByPk(request.body.beachId);
+            else
+                beach = await user.ownsBeach(parseInt(request.body.beachId), reply);
 
-                if ( !await beach.$remove("restaurants", request.body.restaurantId) )
-                    return reply.code(404).send(createHttpError(404, "Beach is not a partner"));
+            if ( !beach )
+                return reply.code(404).send(createHttpError(404, "Beach not found"));
 
-                return reply.code(204).send();
-            }
+            if ( !await beach.$remove("restaurants", request.body.restaurantId) )
+                return reply.code(404).send(createHttpError(404, "Beach is not a partner"));
+
+            return reply.code(204).send();
+            
         }
     });
 

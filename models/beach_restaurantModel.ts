@@ -4,7 +4,7 @@ import { Product } from "./productModel";
 import { Restaurant } from "./restaurantModel";
 
 @Table
-export class BeachRestaurantProduct extends Model {
+export class BeachRestaurant extends Model {
     @PrimaryKey
     @ForeignKey(() => Beach)
     @Column
@@ -14,13 +14,4 @@ export class BeachRestaurantProduct extends Model {
     @ForeignKey(() => Restaurant)
     @Column
     declare restaurantId: number;
-
-    @PrimaryKey
-    @ForeignKey(() => Product)
-    @Column
-    declare productId: number;
-
-    @AllowNull(false)
-    @Column(DataType.FLOAT)
-    declare price: number;
 }

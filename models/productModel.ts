@@ -3,7 +3,7 @@ import { DataTypes } from "sequelize";
 import { Table } from "sequelize-typescript";
 import { Beach } from "./beachModel";
 import { User } from "./userModel";
-import { BeachRestaurantProduct } from "./beach_restaurant_product";
+import { BeachProduct } from "./beach_productsModel";
 import { Restaurant } from "./restaurantModel";
 
 @Table
@@ -22,14 +22,43 @@ export class Product extends Model {
     @Column
     declare imageUrl: string;
 
-    @BelongsToMany(() => Restaurant, () => BeachRestaurantProduct)
-    declare restaurants: Array<Restaurant & {BeachRestaurantProduct: BeachRestaurantProduct}>;
+    @AllowNull(false)
+    @ForeignKey(() => Restaurant)
+    @Column
+    declare restaurantId: number;
 
-    @BelongsToMany(() => Beach, () => BeachRestaurantProduct)
-    declare beaches: Array<Beach & {BeachRestaurantProduct: BeachRestaurantProduct}>;
+    @BelongsTo(() => Restaurant)
+    declare restaurant: Restaurant;
 
+    @BelongsToMany(() => Beach, () => BeachProduct)
+    declare beaches: Array<Beach & {BeachProduct: BeachProduct}>;
 
     static fullAttributes: ["id", "name", "imageUrl"];
+
+    static isValid(product: IProduct) {
+        return product.imageUrl && product.name;
+    }
+
+    async hasAccess(user: User) {
+        if ( user.isAdmin )
+            return true;
+        
+        const restaurant = await this.$get("restaurant");
+
+        if ((await user.$get("restaurantOwner", { where: { id: restaurant?.id }})) )
+            return true;
+        if ((await user.$get("restaurantEmployee", { where: { id: restaurant?.id }})) )
+            return true;
+        
+        const beaches = await this.$get("beaches") as Beach[];
+        const beachesId = beaches.map((beach) => beach.id);
+        if ((await user.$get("beachOwner", { where: {id: beachesId}})))
+            return true;
+        if ((await user.$get("beachEmployee", { where: {id: beachesId}})))
+            return true;
+        
+        return false;
+    }
 }
 
 export interface IProduct {

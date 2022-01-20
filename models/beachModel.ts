@@ -2,8 +2,9 @@ import { AllowNull, AutoIncrement, BelongsToMany, Column, HasMany, HasOne, Model
 import { DataTypes } from "sequelize";
 import { Restaurant } from "./restaurantModel";
 import { User } from "./userModel";
-import { BeachRestaurantProduct } from "./beach_restaurant_product";
 import { Product } from "./productModel";
+import { BeachRestaurant } from "./beach_restaurantModel";
+import { BeachProduct } from "./beach_productsModel";
 
 @Table
 export class Beach extends Model {
@@ -28,11 +29,11 @@ export class Beach extends Model {
     @HasMany(() => User, "beachEmployeeId")
     declare employees: User[];
 
-    @BelongsToMany(() => Restaurant, () => BeachRestaurantProduct)
-    declare restaurants: Array<Restaurant & {BeachRestaurantProduct: BeachRestaurantProduct}>;
+    @BelongsToMany(() => Restaurant, () => BeachRestaurant)
+    declare restaurants: Array<Restaurant & {BeachRestaurant: BeachRestaurant}>;
 
-    @BelongsToMany(() => Product, () => BeachRestaurantProduct)
-    declare products: Array<Product & {BeachRestaurantProduct: BeachRestaurantProduct}>;
+    @BelongsToMany(() => Product, () => BeachProduct)
+    declare products: Array<Product & {BeachProduct: BeachProduct}>;
 
 
     static isValid(restaurant: Beach | IBeach) {

@@ -3,8 +3,8 @@ import { DataTypes } from "sequelize";
 import { Table } from "sequelize-typescript";
 import { Beach } from "./beachModel";
 import { User } from "./userModel";
-import { BeachRestaurantProduct } from "./beach_restaurant_product";
 import { Product } from "./productModel";
+import { BeachRestaurant } from "./beach_restaurantModel";
 
 @Table
 export class Restaurant extends Model {
@@ -29,11 +29,11 @@ export class Restaurant extends Model {
     @HasMany(() => User, "restaurantEmployeeId")
     declare employees: User[];
 
-    @BelongsToMany(() => Beach, () => BeachRestaurantProduct)
-    declare beaches: Array<Beach & {BeachRestaurantProduct: BeachRestaurantProduct}>;
+    @HasMany(() => Product)
+    declare products: Product[];
 
-    @BelongsToMany(() => Product, () => BeachRestaurantProduct)
-    declare products: Array<Product & {BeachRestaurantProduct: BeachRestaurantProduct}>;
+    @BelongsToMany(() => Beach, () => BeachRestaurant)
+    declare beaches: Array<Beach & {BeachRestaurant: BeachRestaurant}>;
 
     static isValid(restaurant: IRestaurant | Restaurant) {
         return restaurant.code && restaurant.name;

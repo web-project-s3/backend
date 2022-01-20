@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
 import { User, IUser, IUserRefreshToken, IUserAccessToken } from "../models/userModel";
-import { refresh, generateAccessToken, generateRefreshToken, isAdmin, verifyUser } from "../auth/userAuth";
+import { refresh, generateAccessToken, generateRefreshToken, isAdmin, verifyUser, verifyAndFetchAllUser } from "../auth/userAuth";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Restaurant } from "../models/restaurantModel";
@@ -17,6 +17,13 @@ declare module "fastify" {
 }
 
 export default function (server: FastifyInstance, options: FastifyRegisterOptions<unknown>, done: () => void) {
+    server.get("/test/", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async ( request, reply ) => {
+            server.log.error((request.user as any).owner);
+        }
+    });
+
     server.post<{Body: IUser}>("/register", {
         handler: async (request, reply) => 
         {
@@ -182,10 +189,11 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
     });
 
     server.get<{Params: {id: number}}>("/:id", {
-        preHandler: verifyUser,
+        preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
-            if ( request.params.id != ((request.user) as IUserAccessToken).id )
-                await isAdmin(request, reply);
+            const authUser = request.user as User;
+            if ( request.params.id !== authUser.id && !authUser.isAdmin )
+                return reply.code(403).send(createHttpError(403));
 
             const user = await User.findByPk(request.params.id, { attributes: User.safeUserAttributes,
                 include: [{
