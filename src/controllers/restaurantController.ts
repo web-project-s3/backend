@@ -88,7 +88,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
             await restaurant.destroy();
-            return reply.code(200).send();
+            return reply.code(204).send();
         }
     });
 

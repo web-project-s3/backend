@@ -20,7 +20,7 @@ export async function isAdmin(request: FastifyRequest, reply: FastifyReply) {
     const user = await User.findByPk((request.user as IUserAccessToken).id, {attributes: ["isAdmin"]});
 
     if ( !user?.isAdmin )
-        return reply.status(403).send(createHttpError(403));
+        return reply.code(403).send(createHttpError(403));
 }
 
 export async function verifyUser(request: FastifyRequest, reply: FastifyReply) {
@@ -64,8 +64,7 @@ export async function verifyAndFetchAllUser(request: FastifyRequest, reply: Fast
         if ( !user )
             return reply.code(400).send("Access token invalid: doesn't match any user");
 
-        Object.assign(request.user, user);
-        request.user;
+        Object.assign(request.user, (user as any).dataValues);
     }
     catch(e)
     {
@@ -73,10 +72,10 @@ export async function verifyAndFetchAllUser(request: FastifyRequest, reply: Fast
     }
 }
 
+
 export async function generateAccessToken(payload: IUserAccessToken) {
     return jwt.sign(payload, access, { expiresIn: "24h" });
 }
-
 export async function generateRefreshToken(payload: IUserRefreshToken) {
     return jwt.sign(payload, refresh);
 }

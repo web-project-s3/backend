@@ -33,7 +33,7 @@ export class Restaurant extends Model {
     declare products: Product[];
 
     @BelongsToMany(() => Beach, () => BeachRestaurant)
-    declare beaches: Array<Beach & {BeachRestaurant: BeachRestaurant}>;
+    declare partners: Array<Beach & {BeachRestaurant: BeachRestaurant}>;
 
     static isValid(restaurant: IRestaurant | Restaurant) {
         return restaurant.code && restaurant.name;

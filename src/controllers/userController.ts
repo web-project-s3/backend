@@ -49,8 +49,8 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                     refreshToken: await generateRefreshToken({ email: request.body.email, password }),
                     isAdmin: false 
                 });
-                user.save();
-                reply.code(201).send({user});
+                
+                reply.code(201).send(await user.save());
             }
             catch(e)
             {
@@ -192,7 +192,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
         preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
             const authUser = request.user as User;
-            if ( request.params.id !== authUser.id && !authUser.isAdmin )
+            if ( ( request.params.id != authUser.id ) && !authUser.isAdmin )
                 return reply.code(403).send(createHttpError(403));
 
             const user = await User.findByPk(request.params.id, { attributes: User.safeUserAttributes,
@@ -230,7 +230,9 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
             const user = await User.findByPk(request.params.id);
             if ( !user )
                 return reply.code(404).send(createHttpError(404, "User not found"));
-            return reply.code(200).send(await user.destroy());
+
+            await user.destroy();
+            return reply.code(204).send();
         }
     });
 
@@ -267,11 +269,16 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
         }
     });
 
-    server.patch<{Body: IUser, Params: {id: number}}>("/", {
-        preHandler:verifyUser,
+    server.patch<{Body: IUser, Params: {id: number}}>("/:id", {
+        preHandler:verifyAndFetchAllUser,
         handler: async ( request, reply ) => {
-            const user = await User.findByPk((request.user as IUserAccessToken).id);
+            const userAuth = request.user as User;
             const b = request.body;
+
+            if (( userAuth.id != request.params.id ) && !userAuth.isAdmin )
+                return reply.code(403).send(createHttpError(403));
+
+            const user = await User.findByPk(request.params.id);
 
             if ( !user )
                 return reply.code(404).send(createHttpError(404, "User not found"));
