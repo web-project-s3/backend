@@ -2,5 +2,6 @@
 module.exports = {
     preset: "ts-jest",
     testEnvironment: "node",
-    globalSetup: "./tests/beforeTests.ts"
+    globalSetup: "./tests/beforeTests.ts",
+    globalTeardown: "./tests/afterTests.ts"
 };

@@ -15,8 +15,8 @@ export function build(){
                 ignore: "pid,hostname"
             },
             level: "debug"
-        } : true,
-        pluginTimeout: 3000000
+        } : true
+        ,pluginTimeout: 3000000
     });
     
     server.register(jwt, { secret: access });

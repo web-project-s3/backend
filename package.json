@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc -w",
     "start": "nodemon -r dotenv/config index.ts ../.env",
-    "test": "jest"
+    "test": "jest --runInBand"
   },
   "keywords": [],
   "author": "",

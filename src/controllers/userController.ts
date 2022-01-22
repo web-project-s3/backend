@@ -129,7 +129,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
             const beach = await Beach.findOne({where:{ code: request.body.code}});
 
             if ( !restaurant && !beach )
-                return reply.code(404).send(createHttpError("Restaurant or beach not found"));
+                return reply.code(404).send(createHttpError(404, "Restaurant or beach not found"));
 
             const userId = (request.user as IUserAccessToken).id;
 
@@ -141,12 +141,12 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
             if (restaurant)
             {
                 await restaurant.$add("Employee", user.id);
-                await user.$remove("beachEmployeeId", user.id);
+                await user.$set("beachEmployee", null);
             }
             else
             {
                 await beach?.$add("Employee", user.id);
-                await beach?.$remove("restaurantEmployeeId", user.id);
+                await user.$set("restaurantEmployee", null);
             }
 
             return reply.code(200).send(await user.reload({attributes: User.safeUserAttributes, include:[

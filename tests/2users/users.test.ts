@@ -1,3 +1,4 @@
+import { Restaurant } from "../../src/models/restaurantModel";
 import { User } from "../../src/models/userModel";
 import { server, buildAdminHeader, buildUserHeader } from "../setup";
 
@@ -394,6 +395,56 @@ describe("Users endpoints test :", () => {
     });
     
     describe("General user tests:", () => {
+        beforeAll(async () => {
+            await server;
+            
+            let userOne = User.build({
+                firstname: "user1",
+                lastname: "user1",
+                email: "user1@test.com",
+                password: "user1password",
+                refreshToken: "user1",
+                isAdmin: false
+            });
+
+            let userTwo = User.build({
+                firstname: "user2",
+                lastname: "user2",
+                email: "user2@test.com",
+                password: "user2password",
+                refreshToken: "user2",
+                isAdmin: false
+            });
+
+            let userThree = User.build({
+                firstname: "user3test",
+                lastname: "user3test",
+                email: "user3test@test.com",
+                password: "user3password",
+                refreshToken: "user3test",
+                isAdmin: false
+            });
+
+            userOne = await userOne.save();
+            userTwo = await userTwo.save();
+            userThree = await userThree.save();
+
+            let restaurantTest = Restaurant.build({
+                name: "restaurantUserTest",
+                code: "userTest"            
+            });
+
+            let restaurantTwo = Restaurant.build({
+                name: "restaurantUserTest",
+                code: "userTest2"            
+            });
+
+            restaurantTest = await restaurantTest.save();
+            restaurantTwo = await restaurantTwo.save();
+            await restaurantTest.$set("owner", userOne);
+            await restaurantTwo.$set("owner", userThree);
+        });
+
         test("Logging in :", async () => {
 
             const response = await server.inject({
@@ -411,9 +462,52 @@ describe("Users endpoints test :", () => {
             expect((JSON.parse(response.body) as User).refreshToken).toEqual(user?.refreshToken);
             
         });
+
+        test("Works at : ", async () => {
+            const user = await User.findByEmail("user2@test.com");
+
+            const header = await buildUserHeader(user!);
+
+            const worksAtRestaurant1 = await server.inject({
+                method: "POST",
+                url: "users/worksAt",
+                headers: header,
+                payload: {
+                    code: "userTest"
+                }
+            });
+
+            await user?.reload({include: { model: Restaurant, as: "restaurantEmployee" }});
+
+            expect(worksAtRestaurant1.statusCode.toString()).toBe("200");
+            expect(user?.restaurantEmployee.code).toBe("userTest");
+
+            const worksAtRestaurantTwo = await server.inject({
+                method: "POST",
+                url: "users/worksAt",
+                headers: header,
+                payload: {
+                    code: "userTest2"
+                }
+            });
+
+            await user?.reload({include: { model: Restaurant, as: "restaurantEmployee" }});
+
+            expect(worksAtRestaurant1.statusCode.toString()).toBe("200");
+            expect(user?.restaurantEmployee.code).toBe("userTest2");
+
+            const worksAtNotFound = await server.inject({
+                method: "POST",
+                url: "users/worksAt",
+                headers: header,
+                payload: {
+                    code: "notfound"
+                }
+            });
+
+            expect(worksAtNotFound.statusCode.toString()).toBe("404");
+        });
     });
-
-
 });
 
 
