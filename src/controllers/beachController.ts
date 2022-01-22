@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRegisterOptions } from "fastify";
 import { Db } from "../models/sequelize";
 import { IUserAccessToken, User } from "../models/userModel";
 import { isAdmin, verifyAndFetchAllUser, verifyUser } from "../auth/userAuth";
-import { IRestaurant, Restaurant } from "../models/restaurantModel";
+import {  Restaurant } from "../models/restaurantModel";
 import { UniqueConstraintError, ValidationError, Op } from "sequelize";
 import createHttpError from "http-errors";
 import { Beach, IBeach } from "../models/beachModel";
@@ -36,7 +36,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                         await beach.$set("owner", user.id);
                         return reply.code(201).send(beach);
                     }
-                    else return reply.code(400).send(createHttpError(400, "Owner couldn't be found"));
+                    else return reply.code(404).send(createHttpError(404, "Owner couldn't be found"));
                 }
                 else return reply.code(400).send(createHttpError(400, "Beach is invalid"));
             }
@@ -90,7 +90,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             if ( !beach )
                 return reply.code(404).send(createHttpError(404, "Beach not found"));
             await beach.destroy();
-            return reply.code(200).send();
+            return reply.code(204).send();
         }
     });
 
@@ -98,8 +98,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
     server.get<{Params: {id: number}}>("/:id", {
         preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
-            
-            const user = request.body as User;
+            const user = request.user as User;
 
             if ( user.isAdmin || user.beachOwner && user.beachOwner.id == request.params.id )
             {
@@ -203,37 +202,39 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 beach = await Beach.findByPk(request.body.id);
             else
                 beach = await user.ownsBeach(request.body.id, reply);
+            if ( reply.sent ) return;
 
             if ( !beach )
                 return reply.code(404).send(createHttpError(404, "Beach not found"));
                 
-            const restaurant = await Beach.findOne({ where: { code: request.body.code }});
+            const restaurant = await Restaurant.findOne({ where: { code: request.body.code }});
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
 
-            if ( await restaurant.$has("beaches", beach.id) )
+            if ( await restaurant.$has("partners", beach.id) )
                 return reply.code(409).send(createHttpError(409, "Already a partner of this restaurant"));
 
-            return reply.code(200).send(await restaurant.$add("beaches", beach));
+            return reply.code(200).send(await restaurant.$add("partners", beach));
             
         }
     });
 
-    server.delete<{Body: {restaurantId: string, beachId: string}}>("/restaurants", {
+    server.delete<{Body: {restaurantId: string, beachId: string}}>("/restaurant", {
         preHandler: verifyAndFetchAllUser, 
         handler: async ( request, reply ) => {
             const user = request.user as User;
-
+            
             let beach: Beach | null = null;
             if ( user.isAdmin )
                 beach = await Beach.findByPk(request.body.beachId);
             else
                 beach = await user.ownsBeach(parseInt(request.body.beachId), reply);
+            if ( reply.sent ) return;
 
             if ( !beach )
                 return reply.code(404).send(createHttpError(404, "Beach not found"));
 
-            if ( !await beach.$remove("restaurants", request.body.restaurantId) )
+            if ( !await beach.$remove("partners", request.body.restaurantId) )
                 return reply.code(404).send(createHttpError(404, "Beach is not a partner"));
 
             return reply.code(204).send();

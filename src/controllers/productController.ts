@@ -17,9 +17,14 @@ declare module "fastify" {
 
 export default function (server: FastifyInstance,  options: FastifyRegisterOptions<unknown>, done: () => void) {
     server.post<{Body: {restaurantId: number, name: string, imageUrl: string}}>("", {
-        preHandler: isAdmin,
+        preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
-            const restaurant = await Restaurant.findByPk(request.body.restaurantId);
+            const user = request.user as User;
+            let restaurant;
+            if ( !user.isAdmin )
+                restaurant = await user.ownsRestaurant(request.body.restaurantId, reply);
+            else restaurant = await Restaurant.findByPk(request.body.restaurantId);
+            
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant could not be found"));
 

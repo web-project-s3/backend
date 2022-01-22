@@ -194,6 +194,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 restaurant = await Restaurant.findByPk(request.body.id);
             else
                 restaurant = await user.ownsRestaurant(request.body.id, reply);
+            if ( reply.sent ) return;
 
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
@@ -202,10 +203,10 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             if ( !beach )
                 return reply.code(404).send(createHttpError(404, "Beach could not be found"));
 
-            if ( await beach.$has("restaurants", restaurant.id) )
+            if ( await beach.$has("partners", restaurant.id) )
                 return reply.code(409).send(createHttpError(409, "Already a partner of this beach"));
 
-            return reply.code(200).send(await beach.$add("restaurants", restaurant));
+            return reply.code(200).send(await beach.$add("partners", restaurant));
         }
     });
 
@@ -218,6 +219,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 restaurant = await Restaurant.findByPk(request.body.restaurantId);
             else
                 restaurant = await user.ownsRestaurant(parseInt(request.body.restaurantId), reply);
+            if ( reply.sent ) return;
 
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));

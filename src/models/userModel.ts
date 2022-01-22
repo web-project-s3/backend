@@ -91,12 +91,12 @@ export class User extends Model {
     }
 
     async ownsBeach(id: number, reply?: FastifyReply) : Promise<Beach | null>{
-        const beach = await this.$get("beachOwner");
-        if ( !beach )
-            if ( reply )
-                return reply.code(404).send(createHttpError(404, `User ${id} doesn't own any beaches`));
-            else return null;
-        if ( beach.id !== id )
+        let beach;
+        if ( !this.beachOwner )
+            beach = await this.$get("beachOwner");
+        else beach = this.beachOwner;
+
+        if ( !beach || beach.id !== id )
             if ( reply )
                 return reply.code(403).send(createHttpError(403, "This is not your beach"));
             else return null;

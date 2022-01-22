@@ -30,7 +30,7 @@ export class Beach extends Model {
     declare employees: User[];
 
     @BelongsToMany(() => Restaurant, () => BeachRestaurant)
-    declare restaurants: Array<Restaurant & {BeachRestaurant: BeachRestaurant}>;
+    declare partners: Array<Restaurant & {BeachRestaurant: BeachRestaurant}>;
 
     @BelongsToMany(() => Product, () => BeachProduct)
     declare products: Array<Product & {BeachProduct: BeachProduct}>;

@@ -456,7 +456,6 @@ describe("Restaurants endpoints test :", () => {
         
         test("Add a partner", async () => {
             const adminHeader = await buildAdminHeader();
-
             const admin = await server.inject({
                 method: "POST",
                 url: "restaurants/beach",

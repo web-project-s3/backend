@@ -9,13 +9,13 @@ import { access } from "./src/auth/userAuth";
 
 export function build(){
     const server = fastify({
-        logger: process.env["WEB_APP_ENVIRONMENT"] === "development" ? {
-            prettyPrint: {
-                translateTime: "HH:MM:ss Z",
-                ignore: "pid,hostname"
-            },
-            level: "debug"
-        } : true
+        logger: false// process.env["WEB_APP_ENVIRONMENT"] === "development" ? {
+        //     prettyPrint: {
+        //         translateTime: "HH:MM:ss Z",
+        //         ignore: "pid,hostname"
+        //     },
+        //     level: "debug"
+        // } : true
         ,pluginTimeout: 3000000
     });
     
