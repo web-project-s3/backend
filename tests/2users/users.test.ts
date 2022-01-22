@@ -157,7 +157,7 @@ describe("Users endpoints test :", () => {
                 payload: { 
                     firstname: "Changed",
                     lastname: "Changed",
-                    email: "testt@test.com",
+                    email: "new@test.com",
                     password: "password",
                     isAdmin: false
                 }
@@ -182,7 +182,7 @@ describe("Users endpoints test :", () => {
                 payload: { 
                     firstname: "Same",
                     lastname: "Same",
-                    email: "testt@test.com",
+                    email: "new@test.com",
                     password: "password",
                     isAdmin: false
                 }
@@ -196,6 +196,10 @@ describe("Users endpoints test :", () => {
         });
 
         test("Replacing a user, email already exists", async () => {
+            const user = await User.findOne();
+            const oldFirstname = user?.firstname;
+            const oldLastname = user?.lastname;
+
             const response = await server.inject({
                 method: "PUT",
                 url: "users/2",
@@ -203,38 +207,17 @@ describe("Users endpoints test :", () => {
                 payload: { 
                     firstname: "Changed",
                     lastname: "Changed",
-                    email: "test@test.com",
+                    email: user?.email,
                     password: "password",
                     isAdmin: false
                 }
             });
 
-            const user = await User.findByPk(2);
+            await user!.reload();
 
             expect(response.statusCode.toString()).toEqual("409");
-            expect(user?.firstname).toEqual("Changed");
-            expect(user?.lastname).toEqual("Changed");
-        });
-
-        test("Replacing a user, email already exists", async () => {
-            const response = await server.inject({
-                method: "PUT",
-                url: "users/2",
-                headers: await buildAdminHeader(),
-                payload: { 
-                    firstname: "Changed",
-                    lastname: "Changed",
-                    email: "test@test.com",
-                    password: "password",
-                    isAdmin: false
-                }
-            });
-
-            const user = await User.findByPk(2);
-
-            expect(response.statusCode.toString()).toEqual("409");
-            expect(user?.firstname).toEqual("Changed");
-            expect(user?.lastname).toEqual("Changed");
+            expect(user?.firstname).toEqual(oldFirstname);
+            expect(user?.lastname).toEqual(oldLastname);
         });
 
         test("Deleting a user, authorized", async () => {

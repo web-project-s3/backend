@@ -78,12 +78,12 @@ export class User extends Model {
     }
 
     async ownsRestaurant(id: number, reply?: FastifyReply) : Promise<Restaurant | null>{
-        const restaurant = await this.$get("restaurantOwner");
-        if ( !restaurant )
-            if ( reply )
-                return reply.code(404).send(createHttpError(404, `User ${id} doesn't own any restaurant`));
-            else return null;
-        if ( restaurant.id !== id )
+        let restaurant;
+        if ( !this.restaurantOwner )
+            restaurant = await this.$get("restaurantOwner");
+        else restaurant = this.restaurantOwner;
+
+        if ( !restaurant || restaurant.id !== id )
             if ( reply )
                 return reply.code(403).send(createHttpError(403, "This is not your restaurant"));
             else return null;

@@ -64,7 +64,10 @@ export async function verifyAndFetchAllUser(request: FastifyRequest, reply: Fast
         if ( !user )
             return reply.code(400).send("Access token invalid: doesn't match any user");
 
-        Object.assign(request.user, (user as any).dataValues);
+        request.user = user;
+        //Object.assign(request.user, user);
+        //debugger;
+        
     }
     catch(e)
     {

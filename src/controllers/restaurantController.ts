@@ -222,7 +222,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
 
-            if ( !await restaurant.$remove("beaches", request.body.beachId) )
+            if ( !await restaurant.$remove("partners", request.body.beachId) )
                 return reply.code(404).send(createHttpError(404, "Beach is not a partner"));
 
             return reply.code(204).send();
