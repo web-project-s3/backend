@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRegisterOptions } from "fastify";
+import { FastifyInstance, FastifyRegisterOptions, FastifyRequest, FastifyReply } from "fastify";
 import { Db } from "../models/sequelize";
 import { IUser, IUserAccessToken, User } from "../models/userModel";
 import { isAdmin, verifyAndFetchAllUser, verifyUser } from "../auth/userAuth";
@@ -7,6 +7,7 @@ import { UniqueConstraintError, ValidationError, Op } from "sequelize";
 import createHttpError from "http-errors";
 import { Beach } from "../models/beachModel";
 import { Product } from "../models/productModel";
+import { BeachProduct } from "../models/beach_productsModel";
 
 // Declaration merging
 declare module "fastify" {
@@ -185,15 +186,15 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         }
     });
 
-    server.post<{Body: {id: number, code: string}}>("/beach", {
+    server.post<{Body: {code: string}, Params: {id: number}}>("/:id/beach", {
         preHandler: verifyAndFetchAllUser,
         handler: async ( request, reply ) => {
             const user = request.user as User;
             let restaurant: Restaurant | null = null;
             if ( user.isAdmin )
-                restaurant = await Restaurant.findByPk(request.body.id);
+                restaurant = await Restaurant.findByPk(request.params.id);
             else
-                restaurant = await user.ownsRestaurant(request.body.id, reply);
+                restaurant = await user.ownsRestaurant(request.params.id, reply);
             if ( reply.sent ) return;
 
             if ( !restaurant )
@@ -236,20 +237,30 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
     Tests for thoses routes are in products.tests.ts
     */
 
+    async function userCanAccesRestaurant(restaurantId: number, request: FastifyRequest<any>, reply: FastifyReply): Promise<Restaurant | null> {
+        const user = request.user as User;
+        let restaurant;
+
+        if ( !user.isAdmin )
+        {
+            restaurant = await user.ownsRestaurant(request.params.restaurantId, reply);
+            if ( reply.sent ) return null;
+        }
+        else restaurant = await Restaurant.findByPk(request.params.restaurantId);
+
+        if ( !restaurant )
+        {
+            reply.code(404).send(createHttpError(404, "Restaurant could not be found"));
+            return null;
+        }
+        return restaurant;
+    }
+
     server.post<{Body: {name: string, imageUrl: string}, Params: { restaurantId: number }}>("/:restaurantId/product", {
         preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
-            const user = request.user as User;
-            let restaurant;
-            if ( !user.isAdmin )
-            {
-                restaurant = await user.ownsRestaurant(request.params.restaurantId, reply);
-                if ( reply.sent ) return;
-            }
-            else restaurant = await Restaurant.findByPk(request.params.restaurantId);
-
-            if ( !restaurant )
-                return reply.code(404).send(createHttpError(404, "Restaurant could not be found"));
+            const restaurant = await userCanAccesRestaurant(request.params.restaurantId, request, reply);
+            if ( restaurant === null ) return;
 
             const product = new Product({
                 name: request.body.name,
@@ -271,21 +282,75 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
     server.get<{Params: {restaurantId: number}}>("/:restaurantId/product", {
         preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
-            const user = request.user as User;
-            let restaurant;
-            if ( !user.isAdmin )
-            {
-                restaurant = await user.ownsRestaurant(request.params.restaurantId, reply);
-                if ( reply.sent ) return;
-            }
-            else restaurant = await Restaurant.findByPk(request.params.restaurantId);
-
-            if ( !restaurant )
-                return reply.code(404).send(createHttpError(404, "Restaurant could not be found"));
+            const restaurant = await userCanAccesRestaurant(request.params.restaurantId, request, reply);
+            if ( restaurant === null ) return;
 
             const products = await restaurant.$get("products");
             reply.code(200).send(products);
-        },
+        }
+    });
+
+    server.put<{Params: {restaurantId: number, productId: number, beachId: number}, Body: { price: number}}>("/:restaurantId/product/:productId/beach/:beachId", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async (request, reply) => {
+            const restaurant = await userCanAccesRestaurant(request.params.restaurantId, request, reply);
+            if ( restaurant === null ) return;
+
+
+            const products = await restaurant.$get("products", { where: { id: request.params.productId}});
+            const beaches = await restaurant.$get("partners", { where: { id: request.params.beachId}});
+            if ( beaches.length === 0)
+                return reply.code(404).send("Beach not found");
+            if ( products.length === 0)
+                return reply.code(404).send("Product not found");
+            
+            const beachProduct = await BeachProduct.upsert({
+                beachId: request.params.beachId,
+                productId: request.params.productId,
+                price: request.body.price
+            });
+
+            return reply.code(beachProduct[1] ? 200 : 201).send(beachProduct[0]);
+        }
+    });
+
+    server.get<{Params: {restaurantId: number, beachId: number}}>("/:restaurantId/beach/:beachId", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async (request, reply) => {
+            const user = request.user as User;
+
+            if ( (!await user.canAccesBeach(request.params.beachId)) && (!await user.canAccesRestaurant(request.params.restaurantId)))
+                return reply.code(403).send(createHttpError(403));
+
+            const restaurant = await Restaurant.findByPk(request.params.restaurantId);
+            const beach = await Beach.findByPk(request.params.beachId);
+
+            if ( beach === null) return reply.code(404).send(createHttpError(404, "Beach not found"));
+            if ( restaurant === null ) return reply.code(404).send(createHttpError(404, "Restaurant not found"));
+
+            const products = await Product.findAll({where: {
+                restaurantId: request.params.restaurantId
+            },
+            include: [
+                {
+                    model: Beach,
+                    attributes: Beach.fullAttributes,
+                    where: {
+                        id: request.params.beachId
+                    },
+                    through: {
+                        as: "pricing",
+                        attributes: ["price"]
+                    }
+                },
+                {
+                    model: Restaurant,
+                    attributes: Restaurant.fullAttributes
+                }
+            ]});
+        
+            return reply.code(200).send(products);
+        }
     });
 
     done();

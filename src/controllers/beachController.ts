@@ -241,6 +241,31 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             
         }
     });
+    /*
+
+    Routes related to beach's product :
+    Tests for thoses routes are in products.tests.ts
+    */
+
+    server.get<{Params: {beachId: number}}>("/:beachId/product", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async (request, reply) => {
+            const user = request.user as User;
+            let beach;
+            if ( !user.isAdmin )
+            {
+                beach = await user.ownsBeach(request.params.beachId, reply);
+                if ( reply.sent ) return;
+            }
+            else beach = await Restaurant.findByPk(request.params.beachId);
+
+            if ( !beach )
+                return reply.code(404).send(createHttpError(404, "Beach could not be found"));
+
+            const products = await beach.$get("products");
+            reply.code(200).send(products);
+        },
+    });
 
 
     done();

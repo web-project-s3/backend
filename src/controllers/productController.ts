@@ -7,6 +7,7 @@ import { Op, UniqueConstraintError } from "sequelize";
 import createHttpError from "http-errors";
 import { Beach } from "../models/beachModel";
 import { IProduct, Product } from "../models/productModel";
+import { BeachProduct } from "../models/beach_productsModel";
 
 // Declaration merging
 declare module "fastify" {
@@ -55,7 +56,19 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
             const user = request.user as User;
-            const product = await Product.findByPk(request.params.id);
+            const product = await Product.findByPk(request.params.id, { include: [
+                {
+                    model: Restaurant,
+                    attributes: Restaurant.fullAttributes
+                },
+                {
+                    model: Beach,
+                    through: {
+                        as: "pricing",
+                        attributes: ["price"]
+                    }
+                }
+            ]});
             if ( !product )
                 return reply.code(404).send(createHttpError(404, "Product not found"));
 

@@ -103,6 +103,30 @@ export class User extends Model {
         return beach;
     }
 
+    async canAccesRestaurant(id: number) : Promise<boolean> {
+        if ( await this.ownsRestaurant(id) )
+            return true;
+        
+        const restaurant = await this.$get("restaurantEmployee");
+        if ( !restaurant )
+            return false;
+        if ( restaurant.id == id)
+            return true;
+        return false;
+    }
+
+    async canAccesBeach(id: number) : Promise<boolean> {
+        if ( await this.ownsRestaurant(id) )
+            return true;
+        
+        const beach = await this.$get("beachEmployee");
+        if ( !beach )
+            return false;
+        if ( beach.id == id)
+            return true;
+        return false;
+    }
+
 }
 
 export interface IUser {
