@@ -1,5 +1,4 @@
-import { AllowNull, AutoIncrement, BelongsTo, BelongsToMany, Column, ForeignKey, HasMany, HasOne, Model, PrimaryKey, Sequelize, Unique } from "sequelize-typescript";
-import { DataTypes } from "sequelize";
+import { AllowNull, AutoIncrement, BelongsTo, BelongsToMany, Column, ForeignKey, Model, PrimaryKey, Unique } from "sequelize-typescript";
 import { Table } from "sequelize-typescript";
 import { Beach } from "./beachModel";
 import { User } from "./userModel";
@@ -42,12 +41,12 @@ export class Product extends Model {
     async hasAccess(user: User) {
         if ( user.isAdmin )
             return true;
-        
-        const restaurant = await this.$get("restaurant");
+        await user.reload();
+        const id = (await this.$get("restaurant"))?.id.toString();
 
-        if ((await user.$get("restaurantOwner", { where: { id: restaurant?.id }})) )
+        if ((await user.$get("restaurantOwner", { where: { id }})))
             return true;
-        if ((await user.$get("restaurantEmployee", { where: { id: restaurant?.id }})) )
+        if ((await user.$get("restaurantEmployee", { where: { id }})) )
             return true;
         
         const beaches = await this.$get("beaches") as Beach[];

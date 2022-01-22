@@ -9,7 +9,7 @@ import { access } from "./src/auth/userAuth";
 
 export function build(){
     const server = fastify({
-        logger: false// process.env["WEB_APP_ENVIRONMENT"] === "development" ? {
+        logger: false //process.env["WEB_APP_ENVIRONMENT"] === "development" ? {
         //     prettyPrint: {
         //         translateTime: "HH:MM:ss Z",
         //         ignore: "pid,hostname"
@@ -30,4 +30,5 @@ export function build(){
 }
 
 const server = build();
-//server.listen(8080);
+if ( process.env["NODE_ENV"] != "test")
+    server.listen(8080);

@@ -83,7 +83,7 @@ export class User extends Model {
             restaurant = await this.$get("restaurantOwner");
         else restaurant = this.restaurantOwner;
 
-        if ( !restaurant || restaurant.id !== id )
+        if ( !restaurant || restaurant.id != id )
             if ( reply )
                 return reply.code(403).send(createHttpError(403, "This is not your restaurant"));
             else return null;
@@ -96,7 +96,7 @@ export class User extends Model {
             beach = await this.$get("beachOwner");
         else beach = this.beachOwner;
 
-        if ( !beach || beach.id !== id )
+        if ( !beach || beach.id != id )
             if ( reply )
                 return reply.code(403).send(createHttpError(403, "This is not your beach"));
             else return null;

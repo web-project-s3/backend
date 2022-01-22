@@ -6,5 +6,5 @@ import { server } from "./setup";
 
 export default async () => {
     server.log.debug("Shutting down..");
-    //server.close();
+    server.close();
 };

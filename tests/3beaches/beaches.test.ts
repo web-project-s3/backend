@@ -200,7 +200,7 @@ describe("Restaurants endpoints test :", () => {
             expect(notFound.statusCode.toString()).toBe("404");
         });
 
-        test("Replacing a restaurant", async () => {
+        test("Replacing a beach", async () => {
             const adminHeader = await buildAdminHeader();
             const beachOne = await Beach.findOne( { where: { name: "beach1"}});
             const beachTwo = await Beach.findOne( { where: { name: "beach2"}});

@@ -231,6 +231,62 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         }
     });
 
+    /*
+    Routes related to restaurant's product :
+    Tests for thoses routes are in products.tests.ts
+    */
+
+    server.post<{Body: {name: string, imageUrl: string}, Params: { restaurantId: number }}>("/:restaurantId/product", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async (request, reply) => {
+            const user = request.user as User;
+            let restaurant;
+            if ( !user.isAdmin )
+            {
+                restaurant = await user.ownsRestaurant(request.params.restaurantId, reply);
+                if ( reply.sent ) return;
+            }
+            else restaurant = await Restaurant.findByPk(request.params.restaurantId);
+
+            if ( !restaurant )
+                return reply.code(404).send(createHttpError(404, "Restaurant could not be found"));
+
+            const product = new Product({
+                name: request.body.name,
+                imageUrl: request.body.imageUrl,
+                restaurantId: restaurant.id
+            });
+            try {
+                return reply.code(201).send(await product.save());
+            }
+            catch(e)
+            {
+                if ( e instanceof UniqueConstraintError )
+                    return reply.code(409).send(createHttpError(409, "Image URL is not unique"));
+                throw e;
+            }
+        }
+    });
+
+    server.get<{Params: {restaurantId: number}}>("/:restaurantId/product", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async (request, reply) => {
+            const user = request.user as User;
+            let restaurant;
+            if ( !user.isAdmin )
+            {
+                restaurant = await user.ownsRestaurant(request.params.restaurantId, reply);
+                if ( reply.sent ) return;
+            }
+            else restaurant = await Restaurant.findByPk(request.params.restaurantId);
+
+            if ( !restaurant )
+                return reply.code(404).send(createHttpError(404, "Restaurant could not be found"));
+
+            const products = await restaurant.$get("products");
+            reply.code(200).send(products);
+        },
+    });
+
     done();
 }
-
