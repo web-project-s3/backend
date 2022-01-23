@@ -643,21 +643,13 @@ describe("Restaurants endpoints test :", () => {
                 const admin = await server.inject({
                     method: "GET",
                     url: "restaurants/" + restaurantOne.id + "/product",
-                    headers: adminHeader,
-                    payload: {
-                        name: "createProduct1",
-                        imageUrl: "createProduct1"
-                    }
+                    headers: adminHeader
                 });
     
                 const allowed = await server.inject({
                     method: "GET",
                     url: "restaurants/" + restaurantOne.id + "/product",
-                    headers: await buildUserHeader(restaurantOwnerOne),
-                    payload: {
-                        name: "createProductAllowed",
-                        imageUrl: "createProductAllowed"
-                    }
+                    headers: await buildUserHeader(restaurantOwnerOne)
                 });
 
                 const forbidden = await server.inject({
@@ -668,7 +660,7 @@ describe("Restaurants endpoints test :", () => {
     
                 const restaurantNotFound = await server.inject({
                     method: "GET",
-                    url: "restaurants/0/beach",
+                    url: "restaurants/0/product",
                     headers: adminHeader
                 });
 

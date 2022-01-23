@@ -1,4 +1,6 @@
 import { Beach } from "../../src/models/beachModel";
+import { BeachProduct } from "../../src/models/beach_productsModel";
+import { Product } from "../../src/models/productModel";
 import { Restaurant } from "../../src/models/restaurantModel";
 import { User } from "../../src/models/userModel";
 import { server, buildAdminHeader, buildUserHeader } from "../setup";
@@ -565,5 +567,69 @@ describe("Restaurants endpoints test :", () => {
             expect(beachNotFound.statusCode.toString()).toBe("404");
             expect(restaurantNotFound.statusCode.toString()).toBe("404");
         }); 
+
+        describe("Tests related to products :", () => {
+            test("Getting all available products : ", async () => {
+                const adminHeader = await buildAdminHeader();
+
+                const productOne = await Product.create({
+                    name: "beachGetProductsOne",
+                    imageUrl: "beachGetProductsOne",
+                    restaurantId: restaurantOne.id
+                });
+
+                const productTwo = await Product.create({
+                    name: "beachGetProductsTwo",
+                    imageUrl: "beachGetProductsTwo",
+                    restaurantId: restaurantOne.id
+                });
+
+                await BeachProduct.create({
+                    beachId: beachOne.id,
+                    productId: productOne.id,
+                    price: 5
+                });
+
+                await BeachProduct.create({
+                    beachId: beachOne.id,
+                    productId: productTwo.id,
+                    price: 7
+                });
+
+                const admin = await server.inject({
+                    method: "GET",
+                    url: "beaches/" + beachOne.id + "/product",
+                    headers: adminHeader
+                });
+    
+                const allowed = await server.inject({
+                    method: "GET",
+                    url: "beaches/" + beachOne.id + "/product",
+                    headers: await buildUserHeader(beachOwnerOne)
+                });
+
+                const forbidden = await server.inject({
+                    method: "GET",
+                    url: "beaches/" + beachOne.id + "/product",
+                    headers: await buildUserHeader(randomNotAdminUser)
+                });
+    
+                const beachNotFound = await server.inject({
+                    method: "GET",
+                    url: "beaches/0/product",
+                    headers: adminHeader
+                });
+
+                expect(admin.statusCode.toString()).toBe("200");
+                expect(allowed.statusCode.toString()).toBe("200");
+                expect(JSON.parse(admin.body).length).toBeGreaterThanOrEqual(2);
+                expect(JSON.parse(allowed.body).length).toEqual(JSON.parse(admin.body).length);
+    
+                expect(forbidden.statusCode.toString()).toBe("403");
+    
+                expect(beachNotFound.statusCode.toString()).toBe("404");  
+            });
+
+        });
     });
 });

@@ -251,13 +251,11 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
             const user = request.user as User;
-            let beach;
-            if ( !user.isAdmin )
-            {
-                beach = await user.ownsBeach(request.params.beachId, reply);
-                if ( reply.sent ) return;
-            }
-            else beach = await Restaurant.findByPk(request.params.beachId);
+
+            if ( !user.isAdmin && !await user.canAccesBeach(request.params.beachId))
+                return reply.code(403).send(createHttpError(403));
+
+            const beach = await Beach.findByPk(request.params.beachId);
 
             if ( !beach )
                 return reply.code(404).send(createHttpError(404, "Beach could not be found"));
