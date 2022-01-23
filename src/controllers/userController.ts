@@ -49,13 +49,15 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                     refreshToken: await generateRefreshToken({ email: request.body.email, password }),
                     isAdmin: false 
                 });
+
+                await user.save();
                 
-                reply.code(201).send(await user.save());
+                reply.code(201).send({id: user.id});
             }
             catch(e)
             {
                 console.log(e);
-                reply.code(500).send(createHttpError(500, "Internal error while registering"));
+                reply.code(500).send(createHttpError(500));
             }
         }
     });
@@ -76,6 +78,14 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                         const accessToken = await generateAccessToken({id: findUser.id});
 
                         return reply.code(200).send({
+                            id: findUser.id,
+                            firstname: findUser.firstname,
+                            lastname: findUser.lastname,
+                            email: findUser.email,
+                            restaurantOwnerId: findUser.restaurantOwnerId,
+                            restaurantEmployeeId: findUser.restaurantEmployeeId,
+                            beachOwnerId: findUser.beachOwner.id,
+                            beachEmployeeId: findUser.beachEmployeeId,
                             accessToken,
                             refreshToken: findUser.refreshToken
                         });
@@ -118,7 +128,18 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                 return reply.code(401).send(createHttpError(401));
 
             const accessToken = await generateAccessToken({ id: user.id });
-            return reply.code(200).send({ accessToken });
+            return reply.code(200).send({
+                id: user.id,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                email: user.email,
+                restaurantOwnerId: user.restaurantOwnerId,
+                restaurantEmployeeId: user.restaurantEmployeeId,
+                beachOwnerId: user.beachOwner.id,
+                beachEmployeeId: user.beachEmployeeId,
+                accessToken,
+                refreshToken: user.refreshToken
+            });
         });
     });
 

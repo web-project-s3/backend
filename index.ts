@@ -5,6 +5,7 @@ import restaurantsRoute from "./src/controllers/restaurantController";
 import beachRoute from "./src/controllers/beachController";
 import productRoute from "./src/controllers/productController";
 import jwt from "fastify-jwt";
+import cors from "fastify-cors";
 import { access } from "./src/auth/userAuth";
 
 export function build(){
@@ -20,6 +21,7 @@ export function build(){
     });
     
     server.register(jwt, { secret: access });
+    server.register(cors);
     server.register(db);
     server.register(productRoute, {prefix: "/products"});
     server.register(usersRoute, {prefix: "/users"});

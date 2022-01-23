@@ -1,5 +1,5 @@
 import { DataTypes, FindAttributeOptions, Includeable } from "sequelize";
-import { Sequelize, Model, Table, Column, AllowNull, Unique, PrimaryKey, AutoIncrement, BelongsTo, ForeignKey } from "sequelize-typescript";
+import { Model, Table, Column, AllowNull, Unique, PrimaryKey, AutoIncrement, BelongsTo, ForeignKey } from "sequelize-typescript";
 import { Beach } from "./beachModel";
 import { Restaurant } from "./restaurantModel";
 import { FastifyReply } from "fastify";
@@ -32,7 +32,7 @@ export class User extends Model {
 
     @AllowNull(false)
     @Unique
-    @Column
+    @Column(DataTypes.TEXT("long"))
     declare refreshToken: string;
 
     @AllowNull(false)
