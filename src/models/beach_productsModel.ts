@@ -1,4 +1,4 @@
-import { AllowNull, Column, ForeignKey, HasMany, Model, PrimaryKey, Table } from "sequelize-typescript";
+import { AllowNull, Column, ForeignKey, HasMany, Model, Table } from "sequelize-typescript";
 import { Beach } from "./beachModel";
 import { Product } from "./productModel";
 
@@ -16,4 +16,10 @@ export class BeachProduct extends Model {
     @AllowNull(false)
     @Column
     declare price: number;
+
+    @HasMany(() => Beach, "beachId")
+    declare beaches: Beach[];
+
+    @HasMany(() => Product, "productId")
+    declare products: Product[];
 }

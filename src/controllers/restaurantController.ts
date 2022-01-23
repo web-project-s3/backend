@@ -211,21 +211,21 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         }
     });
 
-    server.delete<{Body: {restaurantId: string, beachId: string}}>("/beach", {
+    server.delete<{Params: {restaurantId: string, beachId: string}}>("/:restaurantId/beach/:beachId", {
         preHandler: verifyAndFetchAllUser, 
         handler: async ( request, reply ) => {
             const user = request.user as User;
             let restaurant: Restaurant | null = null;
             if ( user.isAdmin )
-                restaurant = await Restaurant.findByPk(request.body.restaurantId);
+                restaurant = await Restaurant.findByPk(request.params.restaurantId);
             else
-                restaurant = await user.ownsRestaurant(parseInt(request.body.restaurantId), reply);
+                restaurant = await user.ownsRestaurant(parseInt(request.params.restaurantId), reply);
             if ( reply.sent ) return;
 
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
 
-            if ( !await restaurant.$remove("partners", request.body.beachId) )
+            if ( !await restaurant.$remove("partners", request.params.beachId) )
                 return reply.code(404).send(createHttpError(404, "Beach is not a partner"));
 
             return reply.code(204).send();
@@ -310,7 +310,8 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 price: request.body.price
             });
 
-            return reply.code(beachProduct[1] ? 200 : 201).send(beachProduct[0]);
+            return reply.code(beachProduct[0].createdAt.toString() == beachProduct[0].updatedAt.toString() ? 201:200).send(beachProduct[0]);
+
         }
     });
 
@@ -319,7 +320,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         handler: async (request, reply) => {
             const user = request.user as User;
 
-            if ( (!await user.canAccesBeach(request.params.beachId)) && (!await user.canAccesRestaurant(request.params.restaurantId)))
+            if ( (!await user.canAccesBeach(request.params.beachId)) && (!await user.canAccesRestaurant(request.params.restaurantId)) && !user.isAdmin)
                 return reply.code(403).send(createHttpError(403));
 
             const restaurant = await Restaurant.findByPk(request.params.restaurantId);

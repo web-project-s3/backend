@@ -1,4 +1,6 @@
 import { Beach } from "../../src/models/beachModel";
+import { BeachProduct } from "../../src/models/beach_productsModel";
+import { Product } from "../../src/models/productModel";
 import { Restaurant } from "../../src/models/restaurantModel";
 import { User } from "../../src/models/userModel";
 import { server, buildAdminHeader, buildUserHeader } from "../setup";
@@ -458,60 +460,54 @@ describe("Restaurants endpoints test :", () => {
             const adminHeader = await buildAdminHeader();
             const admin = await server.inject({
                 method: "POST",
-                url: "restaurants/beach",
+                url: "restaurants/" + restaurantOne.id + "/beach",
                 headers: adminHeader,
                 payload: {
-                    id: restaurantOne.id,
                     code: "beach1test"
                 }
             });
 
             const allowed = await server.inject({
                 method: "POST",
-                url: "restaurants/beach",
+                url: "restaurants/" + restaurantOne.id + "/beach",
                 headers: await buildUserHeader(restaurantOwnerOne),
                 payload: {
-                    id: restaurantOne.id,
                     code: "beach2test"
                 }
             });
 
             const conflict = await server.inject({
                 method: "POST",
-                url: "restaurants/beach",
+                url: "restaurants/" + restaurantOne.id + "/beach",
                 headers: adminHeader,
                 payload: {
-                    id: restaurantOne.id,
                     code: "beach1test"
                 }
             });
 
             const forbidden = await server.inject({
                 method: "POST",
-                url: "restaurants/beach",
+                url: "restaurants/" + restaurantOne.id + "/beach",
                 headers: await buildUserHeader(userBeachOne),
                 payload: {
-                    id: restaurantOne.id,
                     code: "beach2test"
                 }
             });
 
             const restaurantNotFound = await server.inject({
                 method: "POST",
-                url: "restaurants/beach",
+                url: "restaurants/0/beach",
                 headers: adminHeader,
                 payload: {
-                    id: 0,
                     code: "beach1test"
                 }
             });
 
             const beachNotFound = await server.inject({
                 method: "POST", 
-                url: "restaurants/beach", 
+                url: "restaurants/" + restaurantOne.id + "/beach",
                 headers: await buildUserHeader(restaurantOwnerOne),
                 payload: {
-                    id: restaurantOne.id,
                     code: "notfound"
                 }
             });
@@ -534,53 +530,33 @@ describe("Restaurants endpoints test :", () => {
 
             const admin = await server.inject({
                 method: "DELETE",
-                url: "restaurants/beach",
-                headers: adminHeader,
-                payload: {
-                    restaurantId: restaurantOne.id,
-                    beachId: beachOne.id
-                }
+                url: "restaurants/" + restaurantOne.id + "/beach/" + beachOne.id,
+                headers: adminHeader
             });
 
             const allowed = await server.inject({
                 method: "DELETE",
-                url: "restaurants/beach",
-                headers: await buildUserHeader(restaurantOwnerOne),
-                payload: {
-                    restaurantId: restaurantOne.id,
-                    beachId: beachTwo.id
-                }
+                url: "restaurants/" + restaurantOne.id + "/beach/" + beachTwo.id,
+                headers: await buildUserHeader(restaurantOwnerOne)
             });
 
 
             const forbidden = await server.inject({
                 method: "DELETE",
-                url: "restaurants/beach",
-                headers: await buildUserHeader(userBeachOne),
-                payload: {
-                    restaurantId: restaurantOne.id,
-                    beachId: beachTwo.id
-                }
+                url: "restaurants/" + restaurantOne.id + "/beach/" + beachTwo.id,
+                headers: await buildUserHeader(userBeachOne)
             });
 
             const restaurantNotFound = await server.inject({
                 method: "DELETE",
-                url: "restaurants/beach",
-                headers: adminHeader,
-                payload: {
-                    restaurantId: 0,
-                    beachId: beachOne.id
-                }
+                url: "restaurants/0/beach/" + beachTwo.id,
+                headers: adminHeader
             });
 
             const beachNotFound = await server.inject({
                 method: "DELETE", 
-                url: "restaurants/beach", 
-                headers: await buildUserHeader(restaurantOwnerOne),
-                payload: {
-                    restaurantId: restaurantOne.id,
-                    beachId: 0
-                }
+                url: "restaurants/" + restaurantOne.id + "/beach/0", 
+                headers: await buildUserHeader(restaurantOwnerOne)
             });
 
             expect(admin.statusCode.toString()).toBe("204");
@@ -591,7 +567,280 @@ describe("Restaurants endpoints test :", () => {
 
             expect(restaurantNotFound.statusCode.toString()).toBe("404");
             expect(beachNotFound.statusCode.toString()).toBe("404");
+
+            await restaurantOne.$add("partners", beachOne);
         });
+
+        describe("Tests related to products :", () => {
+            test("Create a product for restaurant", async () => {
+                const adminHeader = await buildAdminHeader();
+
+                const admin = await server.inject({
+                    method: "POST",
+                    url: "restaurants/" + restaurantOne.id + "/product",
+                    headers: adminHeader,
+                    payload: {
+                        name: "createProduct1",
+                        imageUrl: "createProduct1"
+                    }
+                });
+    
+                const allowed = await server.inject({
+                    method: "POST",
+                    url: "restaurants/" + restaurantOne.id + "/product",
+                    headers: await buildUserHeader(restaurantOwnerOne),
+                    payload: {
+                        name: "createProductAllowed",
+                        imageUrl: "createProductAllowed"
+                    }
+                });
+    
+                const conflict = await server.inject({
+                    method: "POST",
+                    url: "restaurants/" + restaurantOne.id + "/product",
+                    headers: adminHeader,
+                    payload: {
+                        name: "createProductConflict",
+                        imageUrl: "createProduct1"
+                    }
+                });
+    
+                const forbidden = await server.inject({
+                    method: "POST",
+                    url: "restaurants/" + restaurantOne.id + "/product",
+                    headers: await buildUserHeader(userBeachOne),
+                    payload: {
+                        name: "createProductForbidden",
+                        imageUrl: "createProductForbidden"
+                    }
+                });
+    
+                const restaurantNotFound = await server.inject({
+                    method: "POST",
+                    url: "restaurants/0/beach",
+                    headers: adminHeader,
+                    payload: {
+                        name: "createProduct404",
+                        imageUrl: "createProduct404"
+                    }
+                });
+
+                expect(admin.statusCode.toString()).toBe("201");
+                expect(allowed.statusCode.toString()).toBe("201");
+    
+                expect(await (await restaurantOne.reload({ include: { model: Product, as: "products"}})).products.length).toBeGreaterThanOrEqual(2);
+    
+                expect(conflict.statusCode.toString()).toBe("409");
+    
+                expect(forbidden.statusCode.toString()).toBe("403");
+    
+                expect(restaurantNotFound.statusCode.toString()).toBe("404");    
+            });
+
+            test("Getting all products of restaurant : ", async () => {
+                const adminHeader = await buildAdminHeader();
+
+                const admin = await server.inject({
+                    method: "GET",
+                    url: "restaurants/" + restaurantOne.id + "/product",
+                    headers: adminHeader,
+                    payload: {
+                        name: "createProduct1",
+                        imageUrl: "createProduct1"
+                    }
+                });
+    
+                const allowed = await server.inject({
+                    method: "GET",
+                    url: "restaurants/" + restaurantOne.id + "/product",
+                    headers: await buildUserHeader(restaurantOwnerOne),
+                    payload: {
+                        name: "createProductAllowed",
+                        imageUrl: "createProductAllowed"
+                    }
+                });
+
+                const forbidden = await server.inject({
+                    method: "GET",
+                    url: "restaurants/" + restaurantOne.id + "/product",
+                    headers: await buildUserHeader(userBeachOne)
+                });
+    
+                const restaurantNotFound = await server.inject({
+                    method: "GET",
+                    url: "restaurants/0/beach",
+                    headers: adminHeader
+                });
+
+                expect(admin.statusCode.toString()).toBe("200");
+                expect(allowed.statusCode.toString()).toBe("200");
+                expect(JSON.parse(admin.body).length).toBeGreaterThanOrEqual(2);
+                expect(JSON.parse(allowed.body).length).toEqual(JSON.parse(admin.body).length);
+    
+                expect(forbidden.statusCode.toString()).toBe("403");
+    
+                expect(restaurantNotFound.statusCode.toString()).toBe("404");  
+            });
+
+            test("Publish a product to a beach", async () => {
+                const adminHeader = await buildAdminHeader();
+                const productOne = await Product.create({
+                    name: "publishProductOne",
+                    imageUrl: "publishProductOne",
+                    restaurantId: restaurantOne.id
+                });
+
+                const productTwo = await Product.create({
+                    name: "publishProductTwo",
+                    imageUrl: "publishProductTwo",
+                    restaurantId: restaurantOne.id
+                });
+
+                const admin = await server.inject({
+                    method: "PUT",
+                    url: "restaurants/" + restaurantOne.id + "/product/" + productOne.id + "/beach/" + beachOne.id,
+                    headers: adminHeader,
+                    payload: {
+                        price: 5
+                    }
+                });
+    
+                const allowed = await server.inject({
+                    method: "PUT",
+                    url: "restaurants/" + restaurantOne.id + "/product/" + productTwo.id + "/beach/" + beachOne.id,
+                    headers: adminHeader,
+                    payload: {
+                        price: 3
+                    }
+                });
+
+                // Waiting beacause we detect an update if insert and update are at least 1 second apart
+                await new Promise((r) => setTimeout(r, 2000));
+
+                const update = await server.inject({
+                    method: "PUT",
+                    url: "restaurants/" + restaurantOne.id + "/product/" + productTwo.id + "/beach/" + beachOne.id,
+                    headers: adminHeader,
+                    payload: {
+                        price: 6
+                    }
+                });
+    
+                const forbidden = await server.inject({
+                    method: "PUT",
+                    url: "restaurants/" + restaurantOne.id + "/product/" + productTwo.id + "/beach/" + beachOne.id,
+                    headers: await buildUserHeader(userBeachOne),
+                    payload: {
+                        price: 1
+                    }
+                });
+    
+                const restaurantNotFound = await server.inject({
+                    method: "PUT",
+                    url: "restaurants/0/product/" + productTwo.id + "/beach/" + beachOne.id,
+                    headers: adminHeader,
+                    payload: {
+                        name: "createProduct404",
+                        imageUrl: "createProduct404"
+                    }
+                });
+
+                const beachNotFound = await server.inject({
+                    method: "PUT",
+                    url: "restaurants/" + restaurantOne.id + "/product/" + productTwo.id + "/beach/0",
+                    headers: adminHeader,
+                    payload: {
+                        price: 1
+                    }
+                });
+
+
+                const productNotFound = await server.inject({
+                    method: "PUT",
+                    url: "restaurants/" + restaurantOne.id + "/product/0/beach/" + beachOne.id,
+                    headers: adminHeader,
+                    payload: {
+                        price: 1
+                    }
+                });
+
+                expect(admin.statusCode.toString()).toBe("201");
+                expect(allowed.statusCode.toString()).toBe("201");
+                expect(update.statusCode.toString()).toBe("200");
+
+                expect((await BeachProduct.findOne({ where: { 
+                    productId: productOne.id,
+                    beachId: beachOne.id
+                }}))?.price).toEqual(5);
         
+                expect((await BeachProduct.findOne({ where: { 
+                    productId: productTwo.id,
+                    beachId: beachOne.id
+                }}))?.price).toEqual(6);
+
+                expect(forbidden.statusCode.toString()).toBe("403");
+    
+                expect(restaurantNotFound.statusCode.toString()).toBe("404");    
+                expect(beachNotFound.statusCode.toString()).toBe("404");    
+                expect(productNotFound.statusCode.toString()).toBe("404");    
+
+            });
+
+            test("Get all products published to a beach", async () => {
+                const adminHeader = await buildAdminHeader();
+
+                const admin = await server.inject({
+                    method: "GET",
+                    url: "restaurants/" + restaurantOne.id + "/beach/" + beachOne.id,
+                    headers: adminHeader
+                });
+    
+                const allowed = await server.inject({
+                    method: "GET",
+                    url: "restaurants/" + restaurantOne.id + "/beach/" + beachOne.id,
+                    headers: adminHeader
+                });
+
+    
+                const allowedBeach = await server.inject({
+                    method: "GET",
+                    url: "restaurants/" + restaurantOne.id + "/beach/" + beachOne.id,
+                    headers: await buildUserHeader(userBeachOne)
+                });
+
+                const forbidden = await server.inject({
+                    method: "GET",
+                    url: "restaurants/" + restaurantOne.id + "/beach/" + beachOne.id,
+                    headers: await buildUserHeader(userBeachTwo)
+                });
+    
+                const restaurantNotFound = await server.inject({
+                    method: "GET",
+                    url: "restaurants/0/beach/" + beachOne.id,
+                    headers: adminHeader
+                });
+
+                const beachNotFound = await server.inject({
+                    method: "GET",
+                    url: "restaurants/" + restaurantOne.id + "/beach/0",
+                    headers: adminHeader
+                });
+
+
+                expect(admin.statusCode.toString()).toBe("200");
+                expect(allowed.statusCode.toString()).toBe("200");
+                expect(allowedBeach.statusCode.toString()).toBe("200");
+
+                expect(JSON.parse(admin.body).length).toBeGreaterThanOrEqual(2);
+                expect(JSON.parse(allowed.body).length).toEqual(JSON.parse(admin.body).length);
+                expect(JSON.parse(allowedBeach.body).length).toEqual(JSON.parse(admin.body).length);
+    
+                expect(forbidden.statusCode.toString()).toBe("403");
+    
+                expect(restaurantNotFound.statusCode.toString()).toBe("404");    
+                expect(beachNotFound.statusCode.toString()).toBe("404");    
+            });
+            
+        });
     });
 });

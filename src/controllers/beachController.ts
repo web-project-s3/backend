@@ -192,16 +192,16 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         }
     });
 
-    server.post<{Body: {id: number, code: string}}>("/restaurant", {
+    server.post<{Body: {code: string}, Params: { id: number }}>("/:id/restaurant", {
         preHandler: verifyAndFetchAllUser,
         handler: async ( request, reply ) => {
             const user = request.user as User;
 
             let beach: Beach | null = null;
             if ( user.isAdmin )
-                beach = await Beach.findByPk(request.body.id);
+                beach = await Beach.findByPk(request.params.id);
             else
-                beach = await user.ownsBeach(request.body.id, reply);
+                beach = await user.ownsBeach(request.params.id, reply);
             if ( reply.sent ) return;
 
             if ( !beach )
@@ -219,22 +219,22 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         }
     });
 
-    server.delete<{Body: {restaurantId: string, beachId: string}}>("/restaurant", {
+    server.delete<{Params: {restaurantId: string, beachId: string}}>("/:beachId/restaurant/:restaurantId", {
         preHandler: verifyAndFetchAllUser, 
         handler: async ( request, reply ) => {
             const user = request.user as User;
             
             let beach: Beach | null = null;
             if ( user.isAdmin )
-                beach = await Beach.findByPk(request.body.beachId);
+                beach = await Beach.findByPk(request.params.beachId);
             else
-                beach = await user.ownsBeach(parseInt(request.body.beachId), reply);
+                beach = await user.ownsBeach(parseInt(request.params.beachId), reply);
             if ( reply.sent ) return;
 
             if ( !beach )
                 return reply.code(404).send(createHttpError(404, "Beach not found"));
 
-            if ( !await beach.$remove("partners", request.body.restaurantId) )
+            if ( !await beach.$remove("partners", request.params.restaurantId) )
                 return reply.code(404).send(createHttpError(404, "Beach is not a partner"));
 
             return reply.code(204).send();

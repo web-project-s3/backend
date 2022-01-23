@@ -116,7 +116,7 @@ export class User extends Model {
     }
 
     async canAccesBeach(id: number) : Promise<boolean> {
-        if ( await this.ownsRestaurant(id) )
+        if ( await this.ownsBeach(id) )
             return true;
         
         const beach = await this.$get("beachEmployee");

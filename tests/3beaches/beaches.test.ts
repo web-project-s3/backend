@@ -457,60 +457,54 @@ describe("Restaurants endpoints test :", () => {
             const adminHeader = await buildAdminHeader();
             const admin = await server.inject({
                 method: "POST",
-                url: "beaches/restaurant",
+                url: "beaches/" + beachOne.id + "/restaurant",
                 headers: adminHeader,
                 payload: {
-                    id: beachOne.id,
                     code: "restaurant1test"
                 }
             });
 
             const allowed = await server.inject({
                 method: "POST",
-                url: "beaches/restaurant",
+                url: "beaches/" + beachOne.id + "/restaurant",
                 headers: await buildUserHeader(beachOwnerOne),
                 payload: {
-                    id: beachOne.id,
                     code: "restaurant2test"
                 }
             });
 
             const conflict = await server.inject({
                 method: "POST",
-                url: "beaches/restaurant",
+                url: "beaches/" + beachOne.id + "/restaurant",
                 headers: adminHeader,
                 payload: {
-                    id: beachOne.id,
                     code: "restaurant1test"
                 }
             });
 
             const forbidden = await server.inject({
                 method: "POST",
-                url: "beaches/restaurant",
+                url: "beaches/" + beachOne.id + "/restaurant",
                 headers: await buildUserHeader(userRestaurantOne),
                 payload: {
-                    id: beachOne.id,
                     code: "restaurant2test"
                 }
             });
 
-            const restaurantNotFound = await server.inject({
+            const beachNotFound = await server.inject({
                 method: "POST",
-                url: "beaches/restaurant",
+                url: "beaches/0/restaurant",
                 headers: adminHeader,
                 payload: {
-                    id: 0,
                     code: "restaurant1test"
                 }
             });
 
-            const beachNotFound = await server.inject({
+            const restaurantNotFound = await server.inject({
                 method: "POST", 
-                url: "beaches/beach", 
+                url: "beaches/" + beachOne.id + "/restaurant",
                 headers: await buildUserHeader(beachOwnerOne),
                 payload: {
-                    id: beachOne.id,
                     code: "notfound"
                 }
             });
@@ -524,8 +518,8 @@ describe("Restaurants endpoints test :", () => {
 
             expect(forbidden.statusCode.toString()).toBe("403");
 
-            expect(restaurantNotFound.statusCode.toString()).toBe("404");
             expect(beachNotFound.statusCode.toString()).toBe("404");
+            expect(restaurantNotFound.statusCode.toString()).toBe("404");
         });
 
         test("Delete a partner", async () => {
@@ -533,53 +527,33 @@ describe("Restaurants endpoints test :", () => {
 
             const admin = await server.inject({
                 method: "DELETE",
-                url: "beaches/restaurant",
+                url: "beaches/" + beachOne.id + "/restaurant/" + restaurantOne.id,
                 headers: adminHeader,
-                payload: {
-                    restaurantId: restaurantOne.id,
-                    beachId: beachOne.id
-                }
             });
 
             const allowed = await server.inject({
                 method: "DELETE",
-                url: "beaches/restaurant",
+                url: "beaches/" + beachOne.id + "/restaurant/" + restaurantTwo.id,
                 headers: await buildUserHeader(beachOwnerOne),
-                payload: {
-                    beachId: beachOne.id,
-                    restaurantId: restaurantTwo.id
-                }
             });
 
 
             const forbidden = await server.inject({
                 method: "DELETE",
-                url: "beaches/restaurant",
-                headers: await buildUserHeader(userRestaurantOne),
-                payload: {
-                    beachId: beachOne.id,
-                    restaurantId: restaurantTwo.id
-                }
-            });
-
-            const restaurantNotFound = await server.inject({
-                method: "DELETE",
-                url: "beaches/restaurant",
-                headers: adminHeader,
-                payload: {
-                    beachId: 0,
-                    restaurantId: restaurantOne.id
-                }
+                url: "beaches/" + beachOne.id + "/restaurant/" + restaurantTwo.id,
+                headers: await buildUserHeader(userRestaurantOne)
             });
 
             const beachNotFound = await server.inject({
+                method: "DELETE",
+                url: "beaches/0/restaurant/" + restaurantOne.id,
+                headers: adminHeader,
+            });
+
+            const restaurantNotFound = await server.inject({
                 method: "DELETE", 
-                url: "beaches/restaurant", 
-                headers: await buildUserHeader(beachOwnerOne),
-                payload: {
-                    beachId: beachOne.id,
-                    restaurantId: 0
-                }
+                url: "beaches/" + beachOne.id + "/restaurant/0",
+                headers: await buildUserHeader(beachOwnerOne)
             });
 
             expect(admin.statusCode.toString()).toBe("204");
@@ -588,8 +562,8 @@ describe("Restaurants endpoints test :", () => {
             expect(await (await beachOne.reload({ include: { model: Restaurant, as: "partners"}})).partners.length).toBe(0);
             expect(forbidden.statusCode.toString()).toBe("403");
 
-            expect(restaurantNotFound.statusCode.toString()).toBe("404");
             expect(beachNotFound.statusCode.toString()).toBe("404");
+            expect(restaurantNotFound.statusCode.toString()).toBe("404");
         }); 
     });
 });
