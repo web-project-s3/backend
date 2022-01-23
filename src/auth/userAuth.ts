@@ -17,6 +17,7 @@ if ( !refresh || !access )
 export async function isAdmin(request: FastifyRequest, reply: FastifyReply) {
     await verifyUser(request, reply);
 
+    if ( reply.sent ) return;
     const user = await User.findByPk((request.user as IUserAccessToken).id, {attributes: ["isAdmin"]});
 
     if ( !user?.isAdmin )
@@ -37,7 +38,7 @@ export async function verifyUser(request: FastifyRequest, reply: FastifyReply) {
 export async function verifyAndFetchAllUser(request: FastifyRequest, reply: FastifyReply) {
     try
     {
-        request.jwtVerify();
+        await request.jwtVerify();
         const user = await User.findByPk((request.user as IUserAccessToken).id, { attributes: User.safeUserAttributes,
             include: [{
                 model: Restaurant,
@@ -75,7 +76,7 @@ export async function verifyAndFetchAllUser(request: FastifyRequest, reply: Fast
 
 
 export async function generateAccessToken(payload: IUserAccessToken) {
-    return jwt.sign(payload, access, { expiresIn: "24h" });
+    return jwt.sign(payload, access, { expiresIn: "30s" });
 }
 export async function generateRefreshToken(payload: IUserRefreshToken) {
     return jwt.sign(payload, refresh);

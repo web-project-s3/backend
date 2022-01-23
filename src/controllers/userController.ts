@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Restaurant } from "../models/restaurantModel";
 import createHttpError from "http-errors";
-import { Sequelize, ValidationError, Op} from "sequelize";
+import { ValidationError, Op} from "sequelize";
 import { Beach } from "../models/beachModel";
 
 // Declaration merging
@@ -84,7 +84,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                             email: findUser.email,
                             restaurantOwnerId: findUser.restaurantOwnerId,
                             restaurantEmployeeId: findUser.restaurantEmployeeId,
-                            beachOwnerId: findUser.beachOwner.id,
+                            beachOwnerId: findUser.beachOwnerId,
                             beachEmployeeId: findUser.beachEmployeeId,
                             accessToken,
                             refreshToken: findUser.refreshToken
@@ -135,7 +135,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                 email: user.email,
                 restaurantOwnerId: user.restaurantOwnerId,
                 restaurantEmployeeId: user.restaurantEmployeeId,
-                beachOwnerId: user.beachOwner.id,
+                beachOwnerId: user.beachOwnerId,
                 beachEmployeeId: user.beachEmployeeId,
                 accessToken,
                 refreshToken: user.refreshToken
