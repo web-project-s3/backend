@@ -69,7 +69,7 @@ export class User extends Model {
     static async findByEmail(email: string, include?: Includeable[], attributes?: FindAttributeOptions) {
         return await User.findOne({where: { email }, include, attributes} );
     }
-    static safeUserAttributes = ["id", "firstname", "lastname", "email", "isAdmin"];
+    static safeUserAttributes = ["id", "firstname", "lastname", "email", "isAdmin", "restaurantOwnerId", "restaurantEmployeeId", "beachOwnerId", "beachEmployeeId"];
 
     async isOwner() {
         if ( await this.$get("restaurantOwner") || await this.$get("beachOwner"))
