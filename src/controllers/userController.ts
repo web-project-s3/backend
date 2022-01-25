@@ -86,6 +86,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                             restaurantEmployeeId: findUser.restaurantEmployeeId,
                             beachOwnerId: findUser.beachOwnerId,
                             beachEmployeeId: findUser.beachEmployeeId,
+                            isAdmin: findUser.isAdmin,
                             accessToken,
                             refreshToken: findUser.refreshToken
                         });
@@ -137,6 +138,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                 restaurantEmployeeId: user.restaurantEmployeeId,
                 beachOwnerId: user.beachOwnerId,
                 beachEmployeeId: user.beachEmployeeId,
+                isAdmin: user.isAdmin,
                 accessToken,
                 refreshToken: user.refreshToken
             });
