@@ -188,22 +188,22 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
                 include: [{
                     model: Restaurant,
                     as: "restaurantOwner",
-                    attributes: ["id"]
+                    attributes: ["id", "name"]
                 },
                 {
                     model: Restaurant,
                     as: "restaurantEmployee",
-                    attributes: ["id"]
+                    attributes: ["id", "name"]
                 },
                 {
                     model: Beach,
                     as: "beachOwner",
-                    attributes: ["id"]
+                    attributes: ["id", "name"]
                 },
                 {
                     model: Beach,
                     as: "beachEmployee",
-                    attributes: ["id"]
+                    attributes: ["id", "name"]
                 }
                 ]
             });
