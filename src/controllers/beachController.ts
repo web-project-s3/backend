@@ -89,6 +89,9 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             const beach = await Beach.findByPk(request.params.id);
             if ( !beach )
                 return reply.code(404).send(createHttpError(404, "Beach not found"));
+
+            await beach.$set("owner", null);
+            await beach.$set("employees", null);
             await beach.destroy();
             return reply.code(204).send();
         }

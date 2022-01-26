@@ -88,6 +88,9 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             const restaurant = await Restaurant.findByPk(request.params.id);
             if ( !restaurant )
                 return reply.code(404).send(createHttpError(404, "Restaurant not found"));
+            
+            await restaurant.$set("owner", null);
+            await restaurant.$set("employees", null);
             await restaurant.destroy();
             return reply.code(204).send();
         }
