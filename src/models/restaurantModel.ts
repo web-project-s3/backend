@@ -1,5 +1,4 @@
-import { AllowNull, AutoIncrement, BelongsToMany, Column, ForeignKey, HasMany, HasOne, Model, PrimaryKey, Sequelize, Unique } from "sequelize-typescript";
-import { DataTypes } from "sequelize";
+import { AllowNull, AutoIncrement, BelongsToMany, Column, HasMany, HasOne, Model, PrimaryKey, Unique } from "sequelize-typescript";
 import { Table } from "sequelize-typescript";
 import { Beach } from "./beachModel";
 import { User } from "./userModel";

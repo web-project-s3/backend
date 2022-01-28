@@ -123,7 +123,17 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                     },
                     {
                         model: Product, 
-                        attributes: Product.fullAttributes
+                        attributes: Product.fullAttributes,
+                        include: [
+                            {
+                                model: Beach,
+                                attributes: Beach.fullAttributes,
+                                through: {
+                                    as: "pricing",
+                                    attributes: ["price"]
+                                }
+                            }
+                        ]
                     }
                 ]});
                 if (!restaurant)
@@ -259,6 +269,33 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         return restaurant;
     }
 
+    server.delete<{Params: {restaurantId: number, productId: number, beachId: number}, Body: { price: number}}>("/:restaurantId/product/:productId/beach/:beachId", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async (request, reply) => {
+            const restaurant = await userCanAccesRestaurant(request.params.restaurantId, request, reply);
+            if ( restaurant === null ) return;
+            const product = await Product.findByPk(request.params.productId);
+
+            if ( !product )
+                return reply.code(404).send(createHttpError(404, "Product not found"));
+
+            if ( product.restaurantId !== request.params.restaurantId && !(request.user as User).isAdmin )
+                return reply.code(403).send(createHttpError(403));
+
+            const beachProduct = await BeachProduct.findOne( {
+                where: {
+                    productId: request.params.productId,
+                    beachId: request.params.beachId
+                }
+            });
+
+            if ( !beachProduct )
+                return reply.code(404).send(createHttpError(404, "Product not found"));
+
+            return reply.code(204).send(await beachProduct.destroy());
+        }
+    });
+
     server.post<{Body: {name: string, imageUrl: string}, Params: { restaurantId: number }}>("/:restaurantId/product", {
         preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
@@ -288,7 +325,18 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             const restaurant = await userCanAccesRestaurant(request.params.restaurantId, request, reply);
             if ( restaurant === null ) return;
 
-            const products = await restaurant.$get("products");
+            const products = await restaurant.$get("products", {
+                include: [
+                    {
+                        model: Beach,
+                        attributes: Beach.fullAttributes,
+                        through: {
+                            as: "pricing",
+                            attributes: ["price"]
+                        }
+                    }
+                ]});
+
             reply.code(200).send(products);
         }
     });
@@ -314,7 +362,6 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             });
 
             return reply.code(beachProduct[0].createdAt.toString() == beachProduct[0].updatedAt.toString() ? 201:200).send(beachProduct[0]);
-
         }
     });
 

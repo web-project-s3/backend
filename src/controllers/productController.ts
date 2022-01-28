@@ -41,11 +41,17 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
     });
 
     server.delete<{Params: {id: number}}>("/:id", {
-        preHandler: isAdmin,
+        preHandler: verifyAndFetchAllUser,
         handler: async (request, reply) => {
+            const user = (request.user) as User;
             const product = await Product.findByPk(request.params.id);
+            
             if ( !product )
                 return reply.code(404).send(createHttpError(404, "Product not found"));
+
+            if ( !user.isAdmin && !user.ownsRestaurant(product.restaurantId))
+                return reply.code(403).send(createHttpError(403));
+
             await product.destroy();
             return reply.code(204).send();
         }
