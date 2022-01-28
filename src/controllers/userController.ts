@@ -17,12 +17,6 @@ declare module "fastify" {
 }
 
 export default function (server: FastifyInstance, options: FastifyRegisterOptions<unknown>, done: () => void) {
-    server.get("/test/", {
-        preHandler: verifyAndFetchAllUser,
-        handler: async ( request, reply ) => {
-            server.log.error((request.user as any).owner);
-        }
-    });
 
     server.post<{Body: IUser}>("/register", {
         handler: async (request, reply) => 
@@ -145,13 +139,54 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
         });
     });
 
+    server.delete<{Params: {id: number}}>("/:id/removeEmployer", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async ( request, reply ) => {
+            const requester = (request.user) as User;
+            if ( !requester.isAdmin && requester.id != request.params.id )
+                return reply.code(403).send(createHttpError(403));
+
+            const user = await User.findByPk(request.params.id);
+            if ( !user )
+                return reply.code(404).send(createHttpError(404, "User not found"));           
+            
+            await user.$set("restaurantEmployee", null);
+            await user.$set("beachEmployee", null);
+
+            return reply.code(200).send(await user.reload({
+                attributes: User.safeUserAttributes,
+                include: [{
+                    model: Restaurant,
+                    as: "restaurantOwner",
+                    attributes: ["id", "name"]
+                },
+                {
+                    model: Restaurant,
+                    as: "restaurantEmployee",
+                    attributes: ["id", "name"]
+                },
+                {
+                    model: Beach,
+                    as: "beachOwner",
+                    attributes: ["id", "name"]
+                },
+                {
+                    model: Beach,
+                    as: "beachEmployee",
+                    attributes: ["id", "name"]
+                }
+                ]
+            }));
+        }
+    });
+
     server.post<{Body: {code: string}}>("/worksAt", {
         preHandler: verifyUser,
         handler: async (request, reply) => {
             const restaurant = await Restaurant.findOne({where: {code: request.body.code}});
             const beach = await Beach.findOne({where:{ code: request.body.code}});
 
-            if ( !restaurant && !beach )
+            if ( !restaurant && !beach &&request.body.code)
                 return reply.code(404).send(createHttpError(404, "Restaurant or beach not found"));
 
             const userId = (request.user as IUserAccessToken).id;
@@ -268,15 +303,22 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
             if ( !user )
                 return reply.code(404).send(createHttpError(404, "User not found"));
             
-            if ( b.firstname && b.lastname && b.email && b.password && isAdmin != null )
+            if ( b.firstname && b.lastname && b.email && isAdmin != null )
             {
-                if ( b.password.length < 6 )
+                if ( b.password && b.password.length < 6 )
                     return reply.code(400).send(createHttpError(400, "Password must be at least 6 characters long"));
 
+                if ( b.password )
+                    b.password = await bcrypt.hash(b.password, 10);
+
+                if ( (b.email && b.email != user.email ) || (b.password && b.password != user.password ) )
+                    user.refreshToken = await generateRefreshToken({email: b.email, password: b.password ? b.password : user.password});
+
                 Object.assign(user, b);
-                user.refreshToken = await generateRefreshToken({email: b.email, password: b.password});
+                
 
                 try {
+                    await user.save();
                     reply.code(200).send(await user.save());
                 }
                 catch(e) {
@@ -310,7 +352,7 @@ export default function (server: FastifyInstance, options: FastifyRegisterOption
             if ( b.password != null && b.password.length < 6 )
                 return reply.code(400).send(createHttpError(400, "Password must be at least 6 characters long"));
 
-            if ( b.email != null ) user.email = b.email;
+            //if ( b.email != null ) user.email = b.email;
             if ( b.firstname != null ) user.firstname = b.firstname;
             if ( b.lastname != null ) user.lastname = b.lastname;
             if ( b.password != null ) 
