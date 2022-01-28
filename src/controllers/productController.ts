@@ -7,7 +7,6 @@ import { Op, UniqueConstraintError } from "sequelize";
 import createHttpError from "http-errors";
 import { Beach } from "../models/beachModel";
 import { IProduct, Product } from "../models/productModel";
-import { BeachProduct } from "../models/beach_productsModel";
 
 // Declaration merging
 declare module "fastify" {

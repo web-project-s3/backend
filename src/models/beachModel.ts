@@ -1,5 +1,4 @@
-import { AllowNull, AutoIncrement, BelongsToMany, Column, HasMany, HasOne, Model, PrimaryKey, Sequelize, Table, Unique } from "sequelize-typescript";
-import { DataTypes } from "sequelize";
+import { AllowNull, AutoIncrement, BelongsToMany, Column, HasMany, HasOne, Model, PrimaryKey, Table, Unique } from "sequelize-typescript";
 import { Restaurant } from "./restaurantModel";
 import { User } from "./userModel";
 import { Product } from "./productModel";

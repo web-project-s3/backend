@@ -263,9 +263,16 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             if ( !beach )
                 return reply.code(404).send(createHttpError(404, "Beach could not be found"));
 
-            const products = await beach.$get("products");
+            const products = await beach.$get("products", {
+                attributes:["id", "name", "imageUrl"],
+                include: [{
+                    model: Restaurant,
+                    attributes: ["id", "name"]
+                }] 
+                    
+            });
             reply.code(200).send(products);
-        },
+        }
     });
 
 

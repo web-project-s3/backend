@@ -3,7 +3,7 @@ import createHttpError from "http-errors";
 import jwt from "jsonwebtoken";
 import { Beach } from "../models/beachModel";
 import { Restaurant } from "../models/restaurantModel";
-import { IUser, IUserAccessToken, IUserRefreshToken, User } from "../models/userModel";
+import { IUserAccessToken, IUserRefreshToken, User } from "../models/userModel";
 
 export const refresh = process.env["REFRESH_TOKEN"]!;
 export const access = process.env["ACCESS_TOKEN"]!;

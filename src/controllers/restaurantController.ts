@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRegisterOptions, FastifyRequest, FastifyReply } from "fastify";
 import { Db } from "../models/sequelize";
-import { IUser, IUserAccessToken, User } from "../models/userModel";
-import { isAdmin, verifyAndFetchAllUser, verifyUser } from "../auth/userAuth";
+import {  User } from "../models/userModel";
+import { isAdmin, verifyAndFetchAllUser } from "../auth/userAuth";
 import { IRestaurant, Restaurant } from "../models/restaurantModel";
 import { UniqueConstraintError, ValidationError, Op } from "sequelize";
 import createHttpError from "http-errors";
@@ -250,6 +250,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
     Tests for thoses routes are in products.tests.ts
     */
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async function userCanAccesRestaurant(restaurantId: number, request: FastifyRequest<any>, reply: FastifyReply): Promise<Restaurant | null> {
         const user = request.user as User;
         let restaurant;
