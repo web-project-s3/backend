@@ -4,8 +4,11 @@ import usersRoute from "./src/controllers/userController";
 import restaurantsRoute from "./src/controllers/restaurantController";
 import beachRoute from "./src/controllers/beachController";
 import productRoute from "./src/controllers/productController";
+import orderRoute from "./src/controllers/orderController";
 import jwt from "fastify-jwt";
 import cors from "fastify-cors";
+import socketio from "fastify-socket.io";
+import { instrument } from "@socket.io/admin-ui";
 import { access } from "./src/auth/userAuth";
 
 export function build(){
@@ -21,12 +24,25 @@ export function build(){
     });
     
     server.register(jwt, { secret: access });
-    server.register(cors);
+    server.register(cors, { origin: "*" });
     server.register(db);
+    server.register(socketio);
     server.register(productRoute, {prefix: "/products"});
     server.register(usersRoute, {prefix: "/users"});
     server.register(restaurantsRoute, {prefix: "/restaurants"});
     server.register(beachRoute, {prefix: "/beaches"});
+    server.register(orderRoute, {prefix: "/orders"});
+
+    server.ready().then(() => {
+        server.io.on("connect", (socket) => server.log.debug(`Connected from ${socket.id}`));
+        instrument(server.io, {
+            auth: {
+                type: "basic",
+                username: "admin",
+                password: "$2a$12$EnNaiQbujcA6jyN6Mn1WNOG7RXESAm7f6x3z4OZrLAFVcK8/48HuS"
+            }
+        });
+    });
 
     return server;
 }

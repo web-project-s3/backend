@@ -11,6 +11,9 @@ import { Beach } from "./beachModel";
 import { Product } from "./productModel";
 import { BeachRestaurant } from "./beach_restaurantModel";
 import { BeachProduct } from "./beach_productsModel";
+import { Order } from "./orderModel";
+import { ProductOrder } from "./product_orderModel";
+
 
 export interface Models {
 	User: any;
@@ -19,6 +22,8 @@ export interface Models {
     Product: any;
     BeachProduct: any;
     BeachRestaurant: any;
+    Order: any;
+    ProductOrder: any;
 }
 
 export interface Db {
@@ -44,8 +49,8 @@ const ConnectDB: FastifyPluginAsync = async (
             fastify.log.info("Connected successfully !");
             connected = true;
 
-            const models: Models = { User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant };
-            sequelize.addModels([User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant]);
+            const models: Models = { User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder };
+            sequelize.addModels([User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder]);
             await sequelize.sync();
               
             fastify.decorate("db", { models });

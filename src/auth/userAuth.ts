@@ -76,7 +76,7 @@ export async function verifyAndFetchAllUser(request: FastifyRequest, reply: Fast
 
 
 export async function generateAccessToken(payload: IUserAccessToken) {
-    return jwt.sign(payload, access, { expiresIn: "30s" });
+    return jwt.sign(payload, access, { expiresIn: "30m" });
 }
 export async function generateRefreshToken(payload: IUserRefreshToken) {
     return jwt.sign(payload, refresh);
