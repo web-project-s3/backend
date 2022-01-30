@@ -7,6 +7,7 @@ import { Beach } from "../models/beachModel";
 import { Order } from "../models/orderModel";
 import { Product } from "../models/productModel";
 import { ProductOrder } from "../models/product_orderModel";
+import { Restaurant } from "../models/restaurantModel";
 import { Db } from "../models/sequelize";
 import { User } from "../models/userModel";
 
@@ -71,7 +72,11 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 through: {
                     as: "details",
                     attributes: ["ready", "quantity", "sent"],
-                }
+                },
+                include: [{
+                    model: Restaurant,
+                    attributes: ["id", "name"]
+                }]
             },
             {
                 model: Beach,
@@ -130,7 +135,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
     }
 
     async function pushNewOrder(order: Order, products: Product[]) {
-        server.io.to("beach:" + order.beachId).emit("activeOrders", await getActiveForBeach(order.beachId));
+        orderNS.to("beach:" + order.beachId).emit("activeOrders", await getActiveForBeach(order.beachId));
 
         products.forEach(async product =>
             orderNS.to("restaurant:" + product.restaurantId).emit("activeOrders", await getActiveForRestaurant(product.restaurantId)));
@@ -143,14 +148,14 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
 
         if ( order )
         {
-            server.io.to("beach:" + order.beachId).emit("activeOrders", await getActiveForBeach(order.beachId));
+            orderNS.to("beach:" + order.beachId).emit("activeOrders", await getActiveForBeach(order.beachId));
             order.contains.forEach(async product =>
                 orderNS.to("restaurant:" + product.restaurantId).emit("activeOrders", await getActiveForRestaurant(product.restaurantId)));
         }
     }
 
 
-    server.post<{Body: { products: { id: number, quantity: number }[] }, Params: {id: number}}>("/beach/:id", {
+    server.post<{Body: { products: { id: number, details: { quantity: number } }[], note: string | null | undefined }, Params: {id: number}}>("/beach/:id", {
         preHandler: verifyAndFetchAllUser,
         handler: async ( request, reply ) => {
             const user = request.user as User;
@@ -168,12 +173,12 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                     });
                 });
 
-            const order = await Order.build({ beachId: beach.id, userId: user.id, active: true });
+            const order = await Order.build({ beachId: beach.id, userId: user.id, active: true, note: request.body.note });
             console.log(products);
             await order.save();
 
             request.body.products.forEach(async product => {
-                ProductOrder.create({ "orderId": order.id, "productId": product.id, "quantity": product.quantity, "ready": false });
+                ProductOrder.create({ "orderId": order.id, "productId": product.id, "quantity": product.details.quantity, "ready": false });
             });
 
             pushNewOrder(order, products);
@@ -255,6 +260,26 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             }
 
             pushRefreshedOrder(order.id);
+        }
+    });
+
+    server.post<{Params: {orderId: number}}>("/:orderId", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async (request, reply) => {
+            const user = request.user as User;
+            const order = await Order.findByPk(request.params.orderId);
+            if ( !order ) 
+                return reply.code(404).send(createHttpError(404, "Order not found"));
+
+            if ( !user.isAdmin && !user.canAccesBeach(order.beachId))
+                return reply.code(403).send(createHttpError(403));
+
+            order.active = false;
+            await order.save();
+
+            pushRefreshedOrder(order.id);
+
+            reply.code(200).send(order);
         }
     });
 
