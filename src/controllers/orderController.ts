@@ -7,7 +7,6 @@ import { Beach } from "../models/beachModel";
 import { Order } from "../models/orderModel";
 import { Product } from "../models/productModel";
 import { ProductOrder } from "../models/product_orderModel";
-import { Restaurant } from "../models/restaurantModel";
 import { Db } from "../models/sequelize";
 import { User } from "../models/userModel";
 
@@ -71,7 +70,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 attributes: ["id", "name", "imageUrl", "restaurantId"],
                 through: {
                     as: "details",
-                    attributes: ["ready", "quantity"]
+                    attributes: ["ready", "quantity", "sent"],
                 }
             },
             {
@@ -91,7 +90,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
 
     async function getActiveForRestaurant(restaurantId: number) {
 
-        return Order.findAll({ where: { "active": true }, include: [
+        const orders = await Order.findAll({ where: { "active": true }, include: [
             {
                 model: User,
                 attributes: ["id", "firstname", "lastname"]
@@ -104,7 +103,10 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
                 },
                 through: {
                     as: "details",
-                    attributes: ["ready", "quantity"]
+                    attributes: ["ready", "quantity", "sent"],
+                    where: { 
+                        "sent": false
+                    }
                 }
             },
             {
@@ -113,6 +115,8 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             }
         ],
         });
+
+        return orders.filter(order => order.contains.length > 0);
     }
 
     async function pushNewEvent(orderId: number, productId: number) {
@@ -130,6 +134,19 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
 
         products.forEach(async product =>
             orderNS.to("restaurant:" + product.restaurantId).emit("activeOrders", await getActiveForRestaurant(product.restaurantId)));
+    }
+
+    async function pushRefreshedOrder(orderId: number) {
+        const order = await Order.findByPk(orderId, {
+            include: [{ model: Product }]
+        });
+
+        if ( order )
+        {
+            server.io.to("beach:" + order.beachId).emit("activeOrders", await getActiveForBeach(order.beachId));
+            order.contains.forEach(async product =>
+                orderNS.to("restaurant:" + product.restaurantId).emit("activeOrders", await getActiveForRestaurant(product.restaurantId)));
+        }
     }
 
 
@@ -194,6 +211,50 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             pushNewEvent(request.params.orderId, request.params.productId);
 
             return reply.code(200).send(productOrder);
+        }
+    });
+
+    server.post<{Params: { orderId: number, restaurantId: number}}>("/:orderId/restaurant/:restaurantId", {
+        preHandler: verifyAndFetchAllUser,
+        handler: async ( request, reply ) => {
+            const user = request.user as User;
+
+            if ( !user.isAdmin && ! await user.canAccesRestaurant(request.params.restaurantId ))
+                return reply.code(403).send(createHttpError(403));
+
+            const productOrders = await ProductOrder.findAll({
+                where: {
+                    "orderId": request.params.orderId,
+                    "sent": false
+                },
+                include: [{
+                    model: Product
+                },
+                {
+                    model: Order
+                }]
+            });
+
+            let allSent = true;
+
+            productOrders.forEach(async productOrder => {
+                if ( productOrder.product.restaurantId == request.params.restaurantId )
+                {
+                    productOrder.ready = true;
+                    productOrder.sent = true;
+                    await productOrder.save();
+                }
+                else allSent = allSent && productOrder.sent;
+            });
+
+            const order = productOrders[0].order;
+            if ( allSent )
+            {
+                order.active = false;
+                await order.save();
+            }
+
+            pushRefreshedOrder(order.id);
         }
     });
 

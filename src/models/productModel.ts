@@ -4,6 +4,8 @@ import { Beach } from "./beachModel";
 import { User } from "./userModel";
 import { BeachProduct } from "./beach_productsModel";
 import { Restaurant } from "./restaurantModel";
+import { Order } from "./orderModel";
+import { ProductOrder } from "./product_orderModel";
 
 @Table
 export class Product extends Model {
@@ -31,6 +33,9 @@ export class Product extends Model {
 
     @BelongsToMany(() => Beach, () => BeachProduct)
     declare beaches: Array<Beach & {BeachProduct: BeachProduct}>;
+
+    @BelongsToMany(() => Order, () => ProductOrder)
+    declare orders: Array<Order & {ProductOrder: ProductOrder}>;
 
     static fullAttributes: ["id", "name", "imageUrl"];
 

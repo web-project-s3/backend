@@ -19,14 +19,18 @@ export class ProductOrder extends Model {
     @Column
     declare ready: boolean;
 
+    @Default(false)
+    @Column
+    declare sent: boolean;
+
     @Default(1)
     @Column
     declare quantity: number;
 
+    @HasOne(() => Product, { foreignKey:"id", sourceKey:"productId" })
+    declare product: Product;
+
     @HasOne(() => Order, "id")
     declare order: Order;
-
-    @HasOne(() => Product, "id")
-    declare product: Product;
 
 }
