@@ -33,5 +33,7 @@ jobs:
           DB_PORT: 5432
           DB_NAME: postgres
           DB_DIALECT: postgres
+          REFRESH_TOKEN: token
+          ACCESS_TOKEN: accesstoken
 
           
