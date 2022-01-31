@@ -22,13 +22,6 @@ jobs:
           echo "DB_DIALECT=$DB_DIALECT" >> $GITHUB_ENV
           echo "REFRESH_TOKEN=$REFRESH_TOKEN" >> $GITHUB_ENV
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_NAME: postgres
-          DB_DIALECT: postgres
-          REFRESH_TOKEN: token
-          ACCESS_TOKEN: accesstoken
       - uses: mr-smithers-excellent/docker-build-push@v5
         name: build fdp stp
         with:
