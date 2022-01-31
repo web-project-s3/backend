@@ -50,7 +50,6 @@ const ConnectDB: FastifyPluginAsync = async (
             
             const models: Models = { User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder };
             sequelize.addModels([User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder]);
-            //[User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder].forEach(async test => await test.sync());
             await sequelize.sync();
             
             connected = true;

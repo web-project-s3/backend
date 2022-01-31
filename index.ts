@@ -35,24 +35,27 @@ export function build(){
     server.register(beachRoute, {prefix: "/beaches"});
     server.register(orderRoute, {prefix: "/orders"});
 
-    server.ready().then(async () => {
-        const host = process.env["REDIS_HOSTNAME"];
-        const password = process.env["REDIS_PASSWORD"];
-        const pubClient = createClient({password, socket: { host }});
-        await pubClient.connect();
-        const subClient = pubClient.duplicate();
-        server.io.adapter(createAdapter(pubClient, subClient));
-
-        server.io.on("connect", (socket) => server.log.debug(`Connected : ${socket.id}`));
-
-        instrument(server.io, {
-            auth: {
-                type: "basic",
-                username: "admin",
-                password: "$2a$12$EnNaiQbujcA6jyN6Mn1WNOG7RXESAm7f6x3z4OZrLAFVcK8/48HuS"
-            }
+    if ( !(process.env["NODE_ENV"] == "test")) 
+    {
+        server.ready().then(async () => {
+            const host = process.env["REDIS_HOSTNAME"];
+            const password = process.env["REDIS_PASSWORD"];
+            const pubClient = createClient({password, socket: { host }});
+            await pubClient.connect();
+            const subClient = pubClient.duplicate();
+            server.io.adapter(createAdapter(pubClient, subClient));
+    
+            server.io.on("connect", (socket) => server.log.debug(`Connected : ${socket.id}`));
+    
+            instrument(server.io, {
+                auth: {
+                    type: "basic",
+                    username: "admin",
+                    password: "$2a$12$EnNaiQbujcA6jyN6Mn1WNOG7RXESAm7f6x3z4OZrLAFVcK8/48HuS"
+                }
+            });
         });
-    });
+    }
 
     return server;
 }
