@@ -3,31 +3,26 @@ on: [push]
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
-    # Service containers to run with `container-job`
     services:
-      # Label used to access the service container
       postgres:
-        # Docker Hub image
         image: postgres
-        # Provide the password for postgres
         env:
           POSTGRES_PASSWORD: postgres
-        # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     steps:
-        uses: mr-smithers-excellent/docker-build-push@v5
-      - name: Set env
+      - uses: mr-smithers-excellent/docker-build-push@v5
+        name: Set env
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           image: backend
           tags: ${{ github.sha }}
-        run: |
+      - run: |
           echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
           echo "DB_PORT=$DB_PORT" >> $GITHUB_ENV
           echo "DB_NAME=$DB_NAME" >> $GITHUB_ENV
