@@ -6,12 +6,12 @@ import { server } from "./setup";
 
 export default async () => {
     await server;
-    await server.db.models.User.sync({ force:true });
-    await server.db.models.Restaurant.sync({ force:true });
-    await server.db.models.Beach.sync({ force:true });
-    await server.db.models.Product.sync({ force:true });
-    await server.db.models.BeachRestaurant.sync({ force:true });
-    await server.db.models.BeachProduct.sync({ force:true });
+    // await server.db.models.User.sync({ force:true });
+    // await server.db.models.Restaurant.sync({ force:true });
+    // await server.db.models.Beach.sync({ force:true });
+    // await server.db.models.Product.sync({ force:true });
+    // await server.db.models.BeachRestaurant.sync({ force:true });
+    // await server.db.models.BeachProduct.sync({ force:true });
 
     const response = await server.inject({
         method: "POST",
