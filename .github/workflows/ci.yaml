@@ -29,7 +29,6 @@ jobs:
           echo "REFRESH_TOKEN=$REFRESH_TOKEN" >> $GITHUB_ENV
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
           env
-      - name: Build and push the docker image
         uses: mr-smithers-excellent/docker-build-push@v5
         with:
           registry: ghcr.io
