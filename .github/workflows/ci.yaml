@@ -3,6 +3,21 @@ on: [push]
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v2
       - name: Build and push the docker image
@@ -13,3 +28,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           image: backend
           tags: ${{ github.sha }}
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_NAME: postgres
+          DB_DIALECT: postgres
+
+          

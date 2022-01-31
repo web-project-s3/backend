@@ -492,14 +492,3 @@ describe("Users endpoints test :", () => {
         });
     });
 });
-
-
-
-// 
-// method: String,
-// url: String,
-// query: Object,
-// payload: Object,
-// headers: Object,
-// cookies: Object
-//

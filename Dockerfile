@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 
 # Installation des dépendances et build.
 COPY . .
-RUN npm install && npm run build
+RUN npm install && npm run test && npm run build
 
 ###
 ### Construction de l'image de production (2ème partie)
