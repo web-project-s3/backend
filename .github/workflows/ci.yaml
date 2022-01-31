@@ -13,20 +13,16 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports: 
+          - 5432:5432
     steps:
       - uses: actions/checkout@v2
-      - run: |
-          echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
-          echo "DB_PORT=$DB_PORT" >> $GITHUB_ENV
-          echo "DB_NAME=$DB_NAME" >> $GITHUB_ENV
-          echo "DB_DIALECT=$DB_DIALECT" >> $GITHUB_ENV
-          echo "REFRESH_TOKEN=$REFRESH_TOKEN" >> $GITHUB_ENV
-          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
       - uses: mr-smithers-excellent/docker-build-push@v5
-        name: build fdp stp
+        name: build
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           image: backend
           tags: ${{ github.sha }}
+        
