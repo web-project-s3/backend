@@ -6,6 +6,7 @@ WORKDIR /usr/src/app
 
 # Installation des dépendances et build.
 COPY . .
+RUN env
 RUN npm install && npm run test && npm run build
 
 ###
