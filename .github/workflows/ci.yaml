@@ -17,7 +17,22 @@ jobs:
           - 5432:5432
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16.13.1
+      - run: npm install
+      - run: npm test
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: postgres
+          DB_DIALECT: postgres
+          REFRESH_TOKEN: token
+          ACCESS_TOKEN: accesstoken
+        
+      - run: npm run build
       - uses: mr-smithers-excellent/docker-build-push@v5
+        network: host
         name: build
         with:
           registry: ghcr.io
