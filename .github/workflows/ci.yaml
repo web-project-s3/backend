@@ -19,7 +19,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v2
+        uses: mr-smithers-excellent/docker-build-push@v5
       - name: Set env
         run: |
           echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
@@ -29,7 +29,6 @@ jobs:
           echo "REFRESH_TOKEN=$REFRESH_TOKEN" >> $GITHUB_ENV
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
           env
-        uses: mr-smithers-excellent/docker-build-push@v5
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
