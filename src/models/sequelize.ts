@@ -61,7 +61,10 @@ const ConnectDB: FastifyPluginAsync = async (
         {
             if ( e instanceof ConnectionError)
                 fastify.log.error("Unable to connect to DB, retrying.. : " + e.message);
-            else throw e;
+            else {
+                console.log(e.message);
+                throw e; 
+            }
         }
     }
 };
