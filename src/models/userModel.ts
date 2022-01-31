@@ -32,7 +32,7 @@ export class User extends Model {
 
     @AllowNull(false)
     @Unique
-    @Column(DataTypes.TEXT("long"))
+    @Column(DataTypes.STRING("512"))
     declare refreshToken: string;
 
     @AllowNull(false)
