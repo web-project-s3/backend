@@ -21,6 +21,12 @@ jobs:
     steps:
         uses: mr-smithers-excellent/docker-build-push@v5
       - name: Set env
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          image: backend
+          tags: ${{ github.sha }}
         run: |
           echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
           echo "DB_PORT=$DB_PORT" >> $GITHUB_ENV
@@ -29,12 +35,6 @@ jobs:
           echo "REFRESH_TOKEN=$REFRESH_TOKEN" >> $GITHUB_ENV
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
           env
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          image: backend
-          tags: ${{ github.sha }}
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 5432
