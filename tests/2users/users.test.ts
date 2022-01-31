@@ -429,7 +429,6 @@ describe("Users endpoints test :", () => {
         });
 
         test("Logging in :", async () => {
-
             const response = await server.inject({
                 method: "POST",
                 url: "users/login",

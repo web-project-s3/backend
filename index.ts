@@ -15,7 +15,7 @@ import { createAdapter } from "@socket.io/redis-adapter";
 
 export function build(){
     const server = fastify({
-        logger: process.env["WEB_APP_ENVIRONMENT"] === "development" ? {
+        logger:process.env["WEB_APP_ENVIRONMENT"] === "development" ? {
             prettyPrint: {
                 translateTime: "HH:MM:ss Z",
                 ignore: "pid,hostname"

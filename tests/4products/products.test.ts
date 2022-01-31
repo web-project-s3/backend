@@ -210,7 +210,11 @@ describe("Restaurants endpoints test :", () => {
 
         test("Getting a product", async () => {
             const adminHeader = await buildAdminHeader();
-            const productOne = await Product.findOne();
+            const productOne = await Product.create({
+                name: "testProductGet",
+                imageUrl: "testProductGet",
+                restaurantId: userOne.restaurantOwnerId
+            });
 
             if ( !productOne )
                 fail("Product not found not found");
