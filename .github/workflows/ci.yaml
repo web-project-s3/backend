@@ -28,6 +28,7 @@ jobs:
           echo "DB_DIALECT=$DB_DIALECT >> $GITHUB_ENV"
           echo "REFRESH_TOKEN=$REFRESH_TOKEN >> $GITHUB_ENV"
           echo "ACCESS_TOKEN=$ACCESS_TOKEN >> $GITHUB_ENV"
+          env
       - name: Build and push the docker image
         uses: mr-smithers-excellent/docker-build-push@v5
         with:
