@@ -14,7 +14,7 @@ ENV ACCESS_TOKEN="accesstoken"
 # Installation des dépendances et build.
 COPY . .
 RUN env
-RUN npm install && npm run test && npm run build
+RUN npm install && npm run build
 
 ###
 ### Construction de l'image de production (2ème partie)
