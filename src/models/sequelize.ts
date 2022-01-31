@@ -47,12 +47,13 @@ const ConnectDB: FastifyPluginAsync = async (
             await sequelize.authenticate();
 
             fastify.log.info("Connected successfully !");
-            connected = true;
-
+            
             const models: Models = { User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder };
             sequelize.addModels([User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder]);
+            //[User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder].forEach(async test => await test.sync());
             await sequelize.sync();
-              
+            
+            connected = true;
             fastify.decorate("db", { models });
 
             fastify.addHook("onClose", async () => await sequelize.close());
@@ -63,9 +64,10 @@ const ConnectDB: FastifyPluginAsync = async (
                 fastify.log.error("Unable to connect to DB, retrying.. : " + e.message);
             else if ( e instanceof Error)
             {
-                console.log(`${e.name} : ${e.message}`);
-                throw e; 
+                console.log(`${e.name} : ${e.message} : ${e.stack}`);
             }
+
+            else (console.log(e));
         }
     }
 };

@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import { Error } from "sequelize";
 dotenv.config();
 process.env["DB_NAME"] = "test";
 
@@ -6,6 +7,7 @@ import { server } from "./setup";
 
 export default async () => {
     await server;
+  
     // await server.db.models.User.sync({ force:true });
     // await server.db.models.Restaurant.sync({ force:true });
     // await server.db.models.Beach.sync({ force:true });
