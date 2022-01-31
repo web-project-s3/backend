@@ -2,7 +2,7 @@ import { FastifyInstance } from "fastify";
 import { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { Sequelize } from "sequelize-typescript";
-import { ConnectionError } from "sequelize";
+import { ConnectionError, Error } from "sequelize";
 import { Dialect } from "sequelize/types";
 
 import { User } from "./userModel";
@@ -61,8 +61,9 @@ const ConnectDB: FastifyPluginAsync = async (
         {
             if ( e instanceof ConnectionError)
                 fastify.log.error("Unable to connect to DB, retrying.. : " + e.message);
-            else {
-                console.log(e.message);
+            else if ( e instanceof Error)
+            {
+                console.log(`${e.name} : ${e.message}`);
                 throw e; 
             }
         }
