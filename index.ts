@@ -10,6 +10,8 @@ import cors from "fastify-cors";
 import socketio from "fastify-socket.io";
 import { instrument } from "@socket.io/admin-ui";
 import { access } from "./src/auth/userAuth";
+import { createClient } from "redis";
+import { createAdapter } from "@socket.io/redis-adapter";
 
 export function build(){
     const server = fastify({
@@ -33,8 +35,16 @@ export function build(){
     server.register(beachRoute, {prefix: "/beaches"});
     server.register(orderRoute, {prefix: "/orders"});
 
-    server.ready().then(() => {
-        server.io.on("connect", (socket) => server.log.debug(`Connected from ${socket.id}`));
+    server.ready().then(async () => {
+        const host = process.env["REDIS_HOSTNAME"];
+        const password = process.env["REDIS_PASSWORD"];
+        const pubClient = createClient({password, socket: { host }});
+        await pubClient.connect();
+        const subClient = pubClient.duplicate();
+        server.io.adapter(createAdapter(pubClient, subClient));
+
+        server.io.on("connect", (socket) => server.log.debug(`Connected : ${socket.id}`));
+
         instrument(server.io, {
             auth: {
                 type: "basic",

@@ -18,14 +18,12 @@ declare module "fastify" {
 	}
 }
 
-export default function (server: FastifyInstance,  options: FastifyRegisterOptions<unknown>, done: () => void) {
+export default async function (server: FastifyInstance,  options: FastifyRegisterOptions<unknown>, done: () => void) {
     
     const orderNS = server.io.of("/orders");
     
     orderNS.on("connect", (socket) => {
-
         server.log.debug(`Connection de ${socket.id}`);
-        
         socket.on("register", async (data: {accessToken: string, beachId: number | null, restaurantId: number | null }) => {
             try {
                 const id = server.jwt.decode<{id: number}>(data.accessToken)?.id;
