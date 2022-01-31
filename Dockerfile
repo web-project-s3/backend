@@ -4,7 +4,7 @@
 FROM node:16.13.1 as tsc-builder
 WORKDIR /usr/src/app
 
-ENV DB_HOST="localhost"
+ENV DB_HOST="0.0.0.0"
 ENV DB_PORT="5432"
 ENV DB_NAME="postgres"
 ENV DB_DIALECT="postgres"
