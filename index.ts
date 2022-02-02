@@ -67,7 +67,7 @@ export function build(){
                         email: process.env["ADMIN_EMAIL"],
                         password,
                         refreshToken: await generateRefreshToken({ email: process.env["ADMIN_EMAIL"], password }),
-                        isAdmin: false 
+                        isAdmin: true 
                     });
                 
                     await user.save();
