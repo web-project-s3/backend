@@ -62,4 +62,4 @@ export function build(){
 
 const server = build();
 if ( process.env["NODE_ENV"] != "test")
-    server.listen(8080);
+    server.listen(8080, "0.0.0.0");
