@@ -6,10 +6,11 @@ import beachRoute from "./src/controllers/beachController";
 import productRoute from "./src/controllers/productController";
 import orderRoute from "./src/controllers/orderController";
 import jwt from "fastify-jwt";
+import bcrypt from "bcrypt";
 import cors from "fastify-cors";
 import socketio from "fastify-socket.io";
 import { instrument } from "@socket.io/admin-ui";
-import { access } from "./src/auth/userAuth";
+import { access, generateRefreshToken } from "./src/auth/userAuth";
 import { createClient } from "redis";
 import { createAdapter } from "@socket.io/redis-adapter";
 
@@ -54,6 +55,28 @@ export function build(){
                     password: "$2a$12$EnNaiQbujcA6jyN6Mn1WNOG7RXESAm7f6x3z4OZrLAFVcK8/48HuS"
                 }
             });
+
+            if ( process.env["ADMIN_EMAIL"] && process.env["ADMIN_PASSWORD"] )
+            {
+
+                try {
+                    const password = await bcrypt.hash(process.env["ADMIN_PASSWORD"], 10);
+                    const user = new server.db.models.User({
+                        firstname: "admin",
+                        lastname: "admin",
+                        email: process.env["ADMIN_EMAIL"],
+                        password,
+                        refreshToken: await generateRefreshToken({ email: process.env["ADMIN_EMAIL"], password }),
+                        isAdmin: false 
+                    });
+                
+                    await user.save();
+                }
+                catch(e) {
+                    server.log.error(e);
+                }
+            }
+
         });
     }
 

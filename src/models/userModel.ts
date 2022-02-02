@@ -3,6 +3,7 @@ import { Model, Table, Column, AllowNull, Unique, PrimaryKey, AutoIncrement, Bel
 import { Beach } from "./beachModel";
 import { Restaurant } from "./restaurantModel";
 import { FastifyReply } from "fastify";
+import bcrypt from "bcrypt";
 import createHttpError from "http-errors";
 
 @Table
