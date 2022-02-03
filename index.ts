@@ -41,9 +41,11 @@ export function build(){
         server.ready().then(async () => {
             const host = process.env["REDIS_HOSTNAME"];
             const password = process.env["REDIS_PASSWORD"];
-            const pubClient = createClient({password, socket: { host }});
+            const port = process.env["REDIS_PORT"];
+            const pubClient = createClient({password, socket: { host, port: port ? parseInt(port) : 6379}});
             await pubClient.connect();
             const subClient = pubClient.duplicate();
+            await subClient.connect();
             server.io.adapter(createAdapter(pubClient, subClient));
     
             server.io.on("connect", (socket) => server.log.debug(`Connected : ${socket.id}`));
