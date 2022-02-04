@@ -58,8 +58,7 @@ export default async function (server: FastifyInstance,  options: FastifyRegiste
     }
 
     async function getActiveForBeach(beachId: number) {
-
-        return Order.findAll({ where: { "active": true, "beachId": beachId }, include: [
+        const test = await Order.findAll({ where: { "active": true, "beachId": beachId }, include: [
             {
                 model: User,
                 attributes: ["id", "firstname", "lastname"]
@@ -81,6 +80,8 @@ export default async function (server: FastifyInstance,  options: FastifyRegiste
                 attributes: ["id", "name"]
             }
         ]});
+
+        return test;
     }
 
     async function onRoomJoinRestaurant(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, id: number) {
@@ -93,7 +94,7 @@ export default async function (server: FastifyInstance,  options: FastifyRegiste
 
     async function getActiveForRestaurant(restaurantId: number) {
 
-        const orders = await Order.findAll({ where: { "active": true }, include: [
+        return await Order.findAll({ where: { "active": true }, include: [
             {
                 model: User,
                 attributes: ["id", "firstname", "lastname"]
@@ -118,8 +119,6 @@ export default async function (server: FastifyInstance,  options: FastifyRegiste
             }
         ],
         });
-
-        return orders.filter(order => order.contains.length > 0);
     }
 
     async function pushNewEvent(orderId: number, productId: number) {
@@ -134,7 +133,7 @@ export default async function (server: FastifyInstance,  options: FastifyRegiste
 
     async function pushNewOrder(order: Order, products: Product[]) {
         orderNS.to("beach:" + order.beachId).emit("activeOrders", await getActiveForBeach(order.beachId));
-
+    
         products.forEach(async product =>
             orderNS.to("restaurant:" + product.restaurantId).emit("activeOrders", await getActiveForRestaurant(product.restaurantId)));
     }
@@ -172,13 +171,17 @@ export default async function (server: FastifyInstance,  options: FastifyRegiste
                 });
 
             const order = await Order.build({ beachId: beach.id, userId: user.id, active: true, note: request.body.note });
-            console.log(products);
             await order.save();
 
-            request.body.products.forEach(async product => {
-                ProductOrder.create({ "orderId": order.id, "productId": product.id, "quantity": product.details.quantity, "ready": false });
-            });
-
+            await Promise.all(request.body.products.map(async product => 
+                await ProductOrder.create({ 
+                    "orderId": order.id, 
+                    "productId": product.id, 
+                    "quantity": product.details.quantity, 
+                    "ready": false 
+                }) 
+            ));
+ 
             pushNewOrder(order, products);
 
             return reply.code(201).send(order);
