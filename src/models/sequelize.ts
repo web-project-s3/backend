@@ -51,6 +51,38 @@ const ConnectDB: FastifyPluginAsync = async (
             const models: Models = { User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder };
             sequelize.addModels([User, Restaurant, Beach, Product, BeachProduct, BeachRestaurant, Order, ProductOrder]);
             await sequelize.sync();
+            await sequelize.query(`
+CREATE OR REPLACE FUNCTION checkOrderStillActive()
+RETURNS TRIGGER 
+LANGUAGE PLPGSQL
+as $$
+
+declare
+    nb_active_product integer;
+begin
+    select count(1) from "Orders" o join "ProductOrders" po 
+    on o.id = po."orderId"
+    where po.sent = false
+    into nb_active_product;
+
+    IF nb_active_product = 0 THEN
+        UPDATE "Orders"
+        SET active = false
+        where id = NEW.id;
+    END IF;
+    RETURN NULL;
+END;
+$$;
+            `);
+
+            await sequelize.query(
+                `
+                drop trigger if exists onOrderUpdate on "Orders";
+                create TRIGGER onOrderUpdate
+                after update on "Orders"
+                FOR EACH ROW EXECUTE PROCEDURE checkOrderStillActive();
+                `
+            );
             
             connected = true;
             fastify.decorate("db", { models });

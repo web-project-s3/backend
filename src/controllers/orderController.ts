@@ -221,7 +221,6 @@ export default async function (server: FastifyInstance,  options: FastifyRegiste
         preHandler: verifyAndFetchAllUser,
         handler: async ( request, reply ) => {
             const user = request.user as User;
-
             if ( !user.isAdmin && ! await user.canAccesRestaurant(request.params.restaurantId ))
                 return reply.code(403).send(createHttpError(403));
 
@@ -231,33 +230,31 @@ export default async function (server: FastifyInstance,  options: FastifyRegiste
                     "sent": false
                 },
                 include: [{
-                    model: Product
+                    model: Product,
+                    where: {
+                        "restaurantId": request.params.restaurantId
+                    }
                 },
                 {
                     model: Order
                 }]
             });
 
-            let allSent = true;
-
             productOrders.forEach(async productOrder => {
-                if ( productOrder.product.restaurantId == request.params.restaurantId )
-                {
-                    productOrder.ready = true;
-                    productOrder.sent = true;
-                    await productOrder.save();
-                }
-                else allSent = allSent && productOrder.sent;
+                productOrder.ready = true;
+                productOrder.sent = true;
+                await productOrder.save();
             });
 
-            const order = productOrders[0].order;
-            if ( allSent )
-            {
-                order.active = false;
-                await order.save();
-            }
+            const orderId = productOrders[0]?.order.id;
 
-            pushRefreshedOrder(order.id);
+            if ( orderId )
+            {
+                pushRefreshedOrder(orderId);
+                return reply.code(200).send(await productOrders[0]?.order.save());
+            }
+            
+            else return reply.code(404).send(createHttpError(404, "Products are already all sent"));
         }
     });
 

@@ -1,4 +1,4 @@
-import { AllowNull, AutoIncrement, BelongsTo, BelongsToMany, Column, Default, ForeignKey, Model, PrimaryKey, Table } from "sequelize-typescript";
+import { AllowNull, AutoIncrement, BeforeUpdate, BelongsTo, BelongsToMany, Column, Default, ForeignKey, Model, PrimaryKey, Table } from "sequelize-typescript";
 import { Beach } from "./beachModel";
 import { Product } from "./productModel";
 import { ProductOrder } from "./product_orderModel";
@@ -37,4 +37,5 @@ export class Order extends Model {
 
     @BelongsToMany(() => Product, () => ProductOrder)
     declare contains: Array<Product & {ProductOrder: ProductOrder}>;
+
 }
