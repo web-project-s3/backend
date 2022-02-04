@@ -77,13 +77,69 @@ $$;
 
             await sequelize.query(
                 `
-                drop trigger if exists onOrderUpdate on "Orders";
-                create TRIGGER onOrderUpdate
-                after update on "Orders"
-                FOR EACH ROW EXECUTE PROCEDURE checkOrderStillActive();
+drop trigger if exists onOrderUpdate on "Orders";
+create TRIGGER onOrderUpdate
+after update on "Orders"
+FOR EACH ROW EXECUTE PROCEDURE checkOrderStillActive();
                 `
             );
             
+            await sequelize.query(`
+CREATE OR REPLACE FUNCTION atLeastThreeCharactersInCodeRestaurant()
+RETURNS TRIGGER 
+LANGUAGE PLPGSQL
+as $$
+
+declare
+code_length integer;
+begin
+    select LENGTH(code) from "Restaurants" r where r.id = new.id into code_length;
+
+    IF code_length < 3 THEN
+        RAISE EXCEPTION 'code has to be at least 3 characters';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+            `);
+
+            await sequelize.query(`
+CREATE OR REPLACE FUNCTION atLeastThreeCharactersInCodeBeach()
+RETURNS TRIGGER 
+LANGUAGE PLPGSQL
+as $$
+
+declare
+    code_length integer;
+begin
+    select LENGTH(code) from "Beaches" b where b.id = new.id into code_length;
+
+    IF code_length < 3 THEN
+        RAISE EXCEPTION 'code has to be at least 3 characters';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+                        `);
+
+            await sequelize.query(
+                `
+drop trigger if exists onRestaurantCreateOrUpdate on "Restaurants";
+create TRIGGER onRestaurantCreateOrUpdate
+before insert or update on "Restaurants"
+FOR EACH ROW EXECUTE PROCEDURE atLeastThreeCharactersInCodeRestaurant();
+                `
+            );
+
+            await sequelize.query(
+                `
+drop trigger if exists onBeachCreateOrUpdate on "Beaches";
+create TRIGGER onBeachCreateOrUpdate
+before insert or update on "Beaches"
+FOR EACH ROW EXECUTE PROCEDURE atLeastThreeCharactersInCodeBeach();
+                `
+            );
+
             connected = true;
             fastify.decorate("db", { models });
 
