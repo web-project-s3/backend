@@ -103,7 +103,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
             
             const user = request.user as User;
 
-            if ( user.isAdmin || user.restaurantOwner && user.restaurantOwner.id == request.params.id )
+            if ( user.isAdmin || user.canAccesRestaurant(request.params.id) )
             {
                 const restaurant = await Restaurant.findByPk(request.params.id, { attributes: Restaurant.fullAttributes, include:[
                     {

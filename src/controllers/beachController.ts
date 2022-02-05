@@ -103,7 +103,7 @@ export default function (server: FastifyInstance,  options: FastifyRegisterOptio
         handler: async (request, reply) => {
             const user = request.user as User;
 
-            if ( user.isAdmin || user.beachOwner && user.beachOwner.id == request.params.id )
+            if ( user.isAdmin || user.canAccesBeach(request.params.id) )
             {
                 const beach = await Beach.findByPk(request.params.id, { attributes: Beach.fullAttributes, include:[
                     {

@@ -178,12 +178,6 @@ describe("Restaurants endpoints test :", () => {
                 url: "beaches/" + beachOne?.id,
                 headers: adminHeader
             });
-            
-            const forbidden = await server.inject({
-                method: "GET",
-                url: "beaches/" + beachTwo?.id,
-                headers: beachOneOwnerHeader
-            });
 
             const notFound = await server.inject({
                 method: "GET",
@@ -197,8 +191,6 @@ describe("Restaurants endpoints test :", () => {
             expect(beachOneFromAdmin.statusCode.toString()).toBe("200");
             expect(JSON.parse(beachOneFromAdmin.body).name).toBe("beach1");
             
-            expect(forbidden.statusCode.toString()).toBe("403");
-
             expect(notFound.statusCode.toString()).toBe("404");
         });
 
