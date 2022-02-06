@@ -34,7 +34,6 @@ jobs:
           REFRESH_TOKEN: token
           ACCESS_TOKEN: accesstoken
         
-      - run: npm run build
       - uses: mr-smithers-excellent/docker-build-push@v5
         name: build
         with:
