@@ -4,13 +4,6 @@
 FROM node:16.13.1 as tsc-builder
 WORKDIR /usr/src/app
 
-ENV DB_HOST="127.0.0.1"
-ENV DB_PORT="5432"
-ENV DB_NAME="postgres"
-ENV DB_DIALECT="postgres"
-ENV REFRESH_TOKEN="token"
-ENV ACCESS_TOKEN="accesstoken"
-
 # Installation des dépendances et build.
 COPY . .
 RUN npm install && npm run build
