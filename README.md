@@ -15,3 +15,6 @@ ACCESS_TOKEN : Access token secret \
 REDIS_HOSTNAME : Redis IP \
 REDIS_PASSWORD : Redis password \
 REDIS_PORT : Redis Port \
+
+ADMIN_EMAIL : Default admin email
+ADMIN_PASSWORD : Default admin password
